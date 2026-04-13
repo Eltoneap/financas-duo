@@ -1236,11 +1236,11 @@ async function submitLaunch(){
       };
       if(updateAll&&tx?.group_id){
         // Update all siblings keeping their original dates and indices
-        // If new repeatN < current group, delete extras; if larger, create new ones
+        // If new repeatN < old series size, delete extra ones
         const allInGroup=txs.filter(t=>t.group_id===tx.group_id).sort((a,b)=>a.date.localeCompare(b.date));
         const keep=allInGroup.slice(0,repeatN);
         const remove=allInGroup.slice(repeatN);
-        // Delete removed ones (series shrunk)
+        // Delete removed ones
         if(remove.length>0){
           for(const t of remove){
             await sbDelete('transactions',t.id);
@@ -1248,30 +1248,13 @@ async function submitLaunch(){
           }
         }
         // Update kept ones
-        const finalTotal=Math.max(repeatN,keep.length);
         for(let i=0;i<keep.length;i++){
-          const patch={...updated,date:keep[i].date,repeat_index:i+1,repeat_total:finalTotal,repeat_tx:true,repeat_unit:lsRepeatUnit,repeat_n:repeatN};
+          const patch={...updated,date:keep[i].date,repeat_index:i+1,repeat_total:Math.min(repeatN,keep.length)};
           await sbPatch('transactions',keep[i].id,patch);
           const idx=txs.findIndex(t=>t.id===keep[i].id);
           if(idx>=0)txs[idx]={...txs[idx],...rowToTx({...keep[i],...patch,description:descFinal}),desc:descFinal};
         }
-        // BUG FIX: Create missing future months if series expanded
-        if(repeatN>keep.length){
-          const lastDate=keep.length>0?keep[keep.length-1].date:baseDate;
-          const extraCount=repeatN-keep.length;
-          const extraDates=generateRecurringDates(lastDate,lsRepeatUnit,extraCount+1).slice(1);
-          const newRows=extraDates.map((date,i)=>txToRow({
-            id:uid(),group_id:tx.group_id,type:lsType,amount,desc:descFinal,obs,date,
-            catId:lsSelCatId,subId:lsSelSubId||null,user:lsUser,
-            pago,fixo,repeat:true,repeatUnit:lsRepeatUnit,repeatN,
-            repeatIndex:keep.length+i+1,repeatTotal:finalTotal,
-          }));
-          if(newRows.length>0){
-            await sbPostBatch('transactions',newRows);
-            newRows.forEach(r=>txs.push(rowToTx(r)));
-          }
-        }
-        showToast(`✅ Série atualizada (${finalTotal} lançamentos)!`,'ok');
+        showToast(`✅ Série atualizada (${Math.min(repeatN,keep.length)} lançamentos)!`,'ok');
       } else {
         // Update only this one, keep date unchanged
         const patch={...updated,date:baseDate};
@@ -1628,24 +1611,14 @@ EXEMPLOS DE RACIOCÍNIO:
 - "DROGARIA SP" → suggestedDesc: "Farmácia", suggestedCatName: "Saúde", suggestedSubName: "Farmácia"
 - "IFOOD" → suggestedDesc: "iFood", suggestedCatName: "Alimentação", suggestedSubName: "Delivery"
 
-DETECÇÃO DE PARCELAMENTO:
-Quando uma transação mostrar "Parcela X de Y" (ex: "Parcela 1 de 3"), adicione os campos:
-- "installmentCurrent": número da parcela atual (ex: 1)
-- "installmentTotal": total de parcelas (ex: 3)
-- "amount": valor de UMA parcela (o valor já mostrado no extrato é o valor de cada parcela)
-Isso permite criar automaticamente os próximos meses como lançamentos recorrentes.
-
 REGRAS CRÍTICAS:
 1. Extraia APENAS transações com valor R$ claramente visível
 2. NUNCA invente, suponha ou complete dados — só o que está escrito
 3. A data deve ser EXATAMENTE a que aparece no print — não mude nada
 4. Para C6 notificação: a data está em "dia DD/MM/YYYY às HH:MM" — use essa data
 5. Para C6 extrato: a data está na primeira coluna "DD/MM" — use essa data com ano 2026
-6. Retorne APENAS o JSON array puro, sem texto antes ou depois, sem markdown, sem ```
-7. Se tiver dúvida sobre qualquer dado, NÃO inclua a transação
-8. IMPORTANTE: garanta que o JSON seja válido e completo — sem vírgulas extras, sem campos incompletos
-9. Todos os valores de string devem usar aspas duplas, nunca simples
-10. O array deve começar com [ e terminar com ] — sem exceções`
+6. Retorne APENAS o JSON array, sem texto, sem markdown
+7. Se tiver dúvida sobre qualquer dado, NÃO inclua a transação`
       }
     ];
 
@@ -1664,62 +1637,9 @@ REGRAS CRÍTICAS:
     };
     const data = await callAnthropicAPI(apiPayload, apiHeaders);
     const raw = data.content?.find(b=>b.type==='text')?.text || '[]';
-
-    // Robust JSON parsing — handles markdown fences, extra text, and truncated responses
-    let parsed = [];
-    try {
-      // 1. Remove markdown fences
-      let clean = raw.replace(/```json|```/g,'').trim();
-
-      // 2. Extract first JSON array found in the text (in case IA adds text before/after)
-      const arrMatch = clean.match(/\[\s*[\s\S]*\]/);
-      if(arrMatch) clean = arrMatch[0];
-
-      // 3. Fix common JSON issues: trailing commas before ] or }
-      clean = clean.replace(/,\s*([\]\}])/g, '$1');
-
-      // 4. If JSON is truncated (ends abruptly), try to close it gracefully
-      // Count open braces/brackets
-      let opens = (clean.match(/\{/g)||[]).length - (clean.match(/\}/g)||[]).length;
-      let openArr = (clean.match(/\[/g)||[]).length - (clean.match(/\]/g)||[]).length;
-      if(opens > 0) clean += '}'.repeat(opens);
-      if(openArr > 0) clean += ']'.repeat(openArr);
-
-      parsed = JSON.parse(clean);
-      if(!Array.isArray(parsed)) parsed = parsed.transactions || parsed.items || Object.values(parsed).find(v=>Array.isArray(v)) || [];
-    } catch(parseErr) {
-      console.warn('JSON parse failed, trying item-by-item extraction:', parseErr.message);
-      // Last resort: extract individual objects with regex
-      const objMatches = raw.matchAll(/\{[^{}]*"rawName"[^{}]*\}/g);
-      for(const m of objMatches){
-        try { parsed.push(JSON.parse(m[0])); } catch(e2){}
-      }
-      if(!parsed.length){
-        throw new Error('Não foi possível ler os dados da imagem. Tente novamente ou use um print mais nítido.');
-      }
-    }
-
-    // MELHORIA: Expand installment items into recurring series
-    // e.g. "Parcela 1 de 3" on 11/04 → creates items for 11/04, 11/05, 11/06
-    const expandedParsed = [];
-    for(const item of parsed){
-      if(item.installmentCurrent && item.installmentTotal && item.installmentTotal > 1){
-        const remaining = item.installmentTotal - item.installmentCurrent + 1;
-        const dates = generateRecurringDates(item.date, 'mensal', remaining);
-        for(let i=0; i<dates.length; i++){
-          expandedParsed.push({
-            ...item,
-            date: dates[i],
-            installmentIndex: item.installmentCurrent + i,
-            isInstallmentExpanded: true,
-            _expandedFrom: item.rawName,
-          });
-        }
-      } else {
-        expandedParsed.push(item);
-      }
-    }
-    parsed = expandedParsed;
+    let parsed = JSON.parse(raw.replace(/```json|```/g,'').trim());
+    // Guarantee parsed is always an array
+    if(!Array.isArray(parsed)) parsed = parsed.transactions || parsed.items || [];
 
     // VALIDAÇÃO DE SEGURANÇA — remove itens suspeitos ou inválidos
     parsed = parsed.filter(item => {
@@ -1729,16 +1649,6 @@ REGRAS CRÍTICAS:
       const year = parseInt(item.date.split('-')[0]);
       if(year < 2025 || year > 2027) return false;
       return true;
-    });
-
-    // Assign group_id to installment groups so they save as series
-    const installmentGroups = {};
-    parsed.forEach(item => {
-      if(item.isInstallmentExpanded){
-        const key = item._expandedFrom + '_' + item.installmentTotal;
-        if(!installmentGroups[key]) installmentGroups[key] = 'g_imp_'+Date.now()+'_'+Math.random().toString(36).slice(2,5);
-        item._groupId = installmentGroups[key];
-      }
     });
 
     // Process extracted transactions — match pattern or use AI suggestion
@@ -1791,13 +1701,9 @@ REGRAS CRÍTICAS:
         desc: pattern?.desc || item.suggestedDesc || item.rawName,
         confirmed: false, // user must explicitly confirm
         isDup,
-        aiSuggestCat,
-        aiSuggestSub,
+        aiSuggestCat,  // suggestion for new cat
+        aiSuggestSub,  // suggestion for new sub in existing cat
         confidence: item.confidence || 'medium',
-        isInstallment: !!item.isInstallmentExpanded,
-        groupId: item._groupId || null,
-        repeatIndex: item.installmentIndex || null,
-        repeatTotal: item.installmentTotal || null,
       };
     });
 
@@ -1935,7 +1841,6 @@ function renderRevCard(item){
         <div class="rev-card-desc">${item.desc||item.rawName}</div>
         <div class="rev-card-meta">
           <span style="background:var(--surf3);border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:12px;font-weight:700;color:var(--text)">📅 ${dateFormatted}</span>
-          ${item.isInstallment && item.repeatIndex ? `<span style='font-size:10px;color:var(--blue);font-weight:700;background:var(--bdim);border:1px solid var(--bborder);border-radius:5px;padding:1px 6px'>${item.repeatIndex}/${item.repeatTotal}x</span>` : ''}
           <span style="font-size:10px;color:var(--muted2)">${item.rawName}</span>
         </div>
         <div style="margin-top:5px">
@@ -2076,26 +1981,15 @@ async function confirmAllImport(){
   const btn = document.getElementById('impSaveAll');
   btn.disabled=true; btn.textContent='Salvando...';
   try {
-    // Group installment items by groupId to assign consistent group_ids
-    const groupIdMap = {};
-    toSave.forEach(item => {
-      if(item.groupId && !groupIdMap[item.groupId]) groupIdMap[item.groupId] = uid();
-    });
     const rows = toSave.map(item => {
       // Learn pattern for future use
       if(item.catId) learnPattern(item.rawName, item.catId, item.subId, item.desc);
-      const finalGroupId = item.groupId ? groupIdMap[item.groupId] : uid();
       return txToRow({
-        id: uid(), group_id: finalGroupId, type: item.type,
+        id: uid(), group_id: uid(), type: item.type,
         amount: item.amount, desc: item.desc||item.rawName,
         obs: '', date: item.date,
         catId: item.catId||null, subId: item.subId||null,
-        user: impUser, pago: true, fixo: false,
-        repeat: item.isInstallment||false,
-        repeatUnit: item.isInstallment?'mensal':null,
-        repeatN: item.repeatTotal||null,
-        repeatIndex: item.repeatIndex||null,
-        repeatTotal: item.repeatTotal||null,
+        user: impUser, pago: true, fixo: false, repeat: false,
       });
     });
     await sbPostBatch('transactions', rows);
