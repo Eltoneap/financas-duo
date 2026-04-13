@@ -1641,8 +1641,11 @@ REGRAS CRÍTICAS:
 3. A data deve ser EXATAMENTE a que aparece no print — não mude nada
 4. Para C6 notificação: a data está em "dia DD/MM/YYYY às HH:MM" — use essa data
 5. Para C6 extrato: a data está na primeira coluna "DD/MM" — use essa data com ano 2026
-6. Retorne APENAS o JSON array, sem texto, sem markdown
-7. Se tiver dúvida sobre qualquer dado, NÃO inclua a transação`
+6. Retorne APENAS o JSON array puro, sem texto antes ou depois, sem markdown, sem ```
+7. Se tiver dúvida sobre qualquer dado, NÃO inclua a transação
+8. IMPORTANTE: garanta que o JSON seja válido e completo — sem vírgulas extras, sem campos incompletos
+9. Todos os valores de string devem usar aspas duplas, nunca simples
+10. O array deve começar com [ e terminar com ] — sem exceções`
       }
     ];
 
@@ -1661,9 +1664,40 @@ REGRAS CRÍTICAS:
     };
     const data = await callAnthropicAPI(apiPayload, apiHeaders);
     const raw = data.content?.find(b=>b.type==='text')?.text || '[]';
-    let parsed = JSON.parse(raw.replace(/```json|```/g,'').trim());
-    // Guarantee parsed is always an array
-    if(!Array.isArray(parsed)) parsed = parsed.transactions || parsed.items || [];
+
+    // Robust JSON parsing — handles markdown fences, extra text, and truncated responses
+    let parsed = [];
+    try {
+      // 1. Remove markdown fences
+      let clean = raw.replace(/```json|```/g,'').trim();
+
+      // 2. Extract first JSON array found in the text (in case IA adds text before/after)
+      const arrMatch = clean.match(/\[\s*[\s\S]*\]/);
+      if(arrMatch) clean = arrMatch[0];
+
+      // 3. Fix common JSON issues: trailing commas before ] or }
+      clean = clean.replace(/,\s*([\]\}])/g, '$1');
+
+      // 4. If JSON is truncated (ends abruptly), try to close it gracefully
+      // Count open braces/brackets
+      let opens = (clean.match(/\{/g)||[]).length - (clean.match(/\}/g)||[]).length;
+      let openArr = (clean.match(/\[/g)||[]).length - (clean.match(/\]/g)||[]).length;
+      if(opens > 0) clean += '}'.repeat(opens);
+      if(openArr > 0) clean += ']'.repeat(openArr);
+
+      parsed = JSON.parse(clean);
+      if(!Array.isArray(parsed)) parsed = parsed.transactions || parsed.items || Object.values(parsed).find(v=>Array.isArray(v)) || [];
+    } catch(parseErr) {
+      console.warn('JSON parse failed, trying item-by-item extraction:', parseErr.message);
+      // Last resort: extract individual objects with regex
+      const objMatches = raw.matchAll(/\{[^{}]*"rawName"[^{}]*\}/g);
+      for(const m of objMatches){
+        try { parsed.push(JSON.parse(m[0])); } catch(e2){}
+      }
+      if(!parsed.length){
+        throw new Error('Não foi possível ler os dados da imagem. Tente novamente ou use um print mais nítido.');
+      }
+    }
 
     // MELHORIA: Expand installment items into recurring series
     // e.g. "Parcela 1 de 3" on 11/04 → creates items for 11/04, 11/05, 11/06
