@@ -1587,6 +1587,60 @@ function setImpUser(u){
   if(sEl) sEl.className = 'imp-user-btn' + (u==='S'?' sel-s':'');
 }
 
+function safeParseImportJSON(raw){
+  // 1. Limpa markdown fences
+  let s = raw.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();
+  // 2. Tenta parse direto
+  try {
+    const r = JSON.parse(s);
+    if(Array.isArray(r)) return r;
+    return r.transactions || r.items || [];
+  } catch(e1) {}
+  // 3. Extrai só o array do texto (busca [ ... ])
+  const arrMatch = s.match(/\[.*\]/s);
+  if(arrMatch){
+    try {
+      const r = JSON.parse(arrMatch[0]);
+      if(Array.isArray(r)) return r;
+    } catch(e2) {}
+  }
+  // 4. Tenta reparar JSON truncado: fecha strings abertas, objetos e arrays
+  try {
+    let fixed = s;
+    // Remove vírgula trailing antes de fechar
+    fixed = fixed.replace(/,\s*([}\]])/g,'$1');
+    // Se não tem [ no início, adiciona
+    if(!fixed.startsWith('[')) fixed = '[' + fixed;
+    // Conta abertura/fechamento de objetos e arrays para fechar o que falta
+    let openObj = 0, openArr = 0, inStr = false, escape = false;
+    for(let i=0;i<fixed.length;i++){
+      const c=fixed[i];
+      if(escape){escape=false;continue;}
+      if(c==='\\'){escape=true;continue;}
+      if(c==='"'&&!escape){inStr=!inStr;continue;}
+      if(inStr) continue;
+      if(c==='{') openObj++;
+      else if(c==='}') openObj=Math.max(0,openObj-1);
+      else if(c==='[') openArr++;
+      else if(c===']') openArr=Math.max(0,openArr-1);
+    }
+    // Se string estava aberta, fecha ela
+    if(inStr) fixed += '"';
+    // Fecha objetos abertos
+    for(let i=0;i<openObj;i++) fixed += '}';
+    // Fecha arrays abertos
+    for(let i=0;i<openArr;i++) fixed += ']';
+    // Remove último item se incompleto (sem rawName ou amount)
+    const r = JSON.parse(fixed);
+    const arr = Array.isArray(r) ? r : (r.transactions||r.items||[]);
+    // Filtra itens que tenham pelo menos rawName e amount válidos
+    return arr.filter(x=>x&&x.rawName&&x.amount>0);
+  } catch(e3) {
+    console.warn('safeParseImportJSON falhou:', e3.message, '\nRaw:', raw.slice(0,200));
+    return [];
+  }
+}
+
 async function handleImgUpload(e){
   const files = Array.from(e.target.files);
   if(!files.length) return;
@@ -1671,7 +1725,7 @@ REGRAS CRÍTICAS:
     // Call Anthropic API with fallback proxies for Safari PWA compatibility
     const apiPayload = {
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 1000,
+      max_tokens: 4000,
       messages: [{ role: 'user', content }]
     };
     const apiHeaders = {
@@ -1682,9 +1736,7 @@ REGRAS CRÍTICAS:
     };
     const data = await callAnthropicAPI(apiPayload, apiHeaders);
     const raw = data.content?.find(b=>b.type==='text')?.text || '[]';
-    let parsed = JSON.parse(raw.replace(/```json|```/g,'').trim());
-    // Guarantee parsed is always an array
-    if(!Array.isArray(parsed)) parsed = parsed.transactions || parsed.items || [];
+    let parsed = safeParseImportJSON(raw);
 
     // VALIDAÇÃO DE SEGURANÇA — remove itens suspeitos ou inválidos
     parsed = parsed.filter(item => {
