@@ -484,17 +484,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div class="imp-drop-lbl">Toque para enviar print(s)</div>
       <div class="imp-drop-sub">Notificação do C6 ou extrato do app<br>Pode enviar mais de uma imagem</div>
     </div>
-    <div id="impPreviews" style="display:none;margin-bottom:14px">
-      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">📎 Prints enviados — compare com os itens abaixo</div>
-      <div id="impPreviewList" style="display:flex;flex-direction:column;gap:8px"></div>
-    </div>
     <div id="impResults"></div>
   </div>
   <div class="imp-save-bar">
-    <div style="display:flex;gap:8px">
-      <button onclick="confirmAll()" style="flex:1;padding:12px;border:none;border-radius:50px;background:var(--surf2);border:1px solid var(--border);color:var(--text);font-weight:700;font-size:13px;cursor:pointer">✓ Confirmar todos</button>
-      <button class="imp-save-all" id="impSaveAll" onclick="confirmAllImport()" disabled style="flex:2">Salvar</button>
-    </div>
+    <button class="imp-save-all" id="impSaveAll" onclick="confirmAllImport()" disabled>Salvar lançamentos confirmados</button>
   </div>
 </div>
 
@@ -874,9 +867,7 @@ function startRealtime(){
         const rows=await sbGet('transactions','select=*&order=date.desc,created_at.desc');
         txs=rows.map(rowToTx);
         localStorage.setItem('fd_txs_bk',JSON.stringify(txs));
-        // Only render if launch screen is not open (avoid clearing active form)
-        const launchOpen = document.getElementById('launchScreen')?.classList.contains('open');
-        if(!launchOpen) render();
+        render();
         setSyncStatus('ok','Sincronizado ✓');
         if(msg.event==='INSERT')showToast('💸 Novo lançamento!','ok');
       }
@@ -1056,21 +1047,6 @@ function openLaunch(type,txId){
   document.getElementById('tgFixo').checked=tx?tx.fixo:false;
   document.getElementById('tgRepetir').checked=tx?tx.repeat:false;
   document.getElementById('repeatOpts').className='repeat-opts'+(tx&&tx.repeat?' show':'');
-  // Restore repeat unit and count from saved transaction
-  if(tx&&tx.repeatUnit){
-    lsRepeatUnit=tx.repeatUnit;
-    setRepeatUnit(tx.repeatUnit);
-  } else {
-    lsRepeatUnit='mensal';
-    setRepeatUnit('mensal');
-  }
-  if(tx&&tx.repeatN){
-    lsRepeatN=tx.repeatN;
-    document.getElementById('repNum').textContent=tx.repeatN;
-  } else {
-    lsRepeatN=2;
-    document.getElementById('repNum').textContent=2;
-  }
   // delete button visibility
   document.getElementById('lsDelBtn').style.display=txId?'block':'none';
 
@@ -1143,22 +1119,8 @@ function openSubcatPicker(){
   document.getElementById('subcatPicker').classList.add('open');
 }
 function closeSubcatPicker(){document.getElementById('subcatPicker').classList.remove('open');}
-function selectCatOnly(id){
-  if(impPickingForId){
-    const item=importItems.find(i=>i.id===impPickingForId);
-    if(item){item.catId=id;item.subId=null;item.aiSuggestCat=null;item.aiSuggestSub=null;}
-    impPickingForId=null;closeSubcatPicker();renderImportResults();return;
-  }
-  lsSelCatId=id;lsSelSubId=null;updateCatPill();closeSubcatPicker();
-}
-function selectCatSub(cId,sId){
-  if(impPickingForId){
-    const item=importItems.find(i=>i.id===impPickingForId);
-    if(item){item.catId=cId;item.subId=sId;item.aiSuggestCat=null;item.aiSuggestSub=null;}
-    impPickingForId=null;closeSubcatPicker();renderImportResults();return;
-  }
-  lsSelCatId=cId;lsSelSubId=sId;updateCatPill();closeSubcatPicker();
-}
+function selectCatOnly(id){lsSelCatId=id;lsSelSubId=null;updateCatPill();closeSubcatPicker();}
+function selectCatSub(cId,sId){lsSelCatId=cId;lsSelSubId=sId;updateCatPill();closeSubcatPicker();}
 
 // ═══════════════════════════════════════
 //  RECURRENCE — generate all instances
@@ -1435,23 +1397,9 @@ async function deleteCat(id,type){
 }
 async function deleteSub(catId,subId,type){
   if(!confirm('Excluir esta subcategoria?'))return;
-  // Only allow deleting subs from custom categories — not from defaults
-  const custList = type==='despesa' ? custD : custR;
-  const custCat = custList.find(c=>c.id===catId);
-  if(custCat){
-    custCat.subs = custCat.subs.filter(s=>s.id!==subId);
-    await updateCatInCloud(custCat);
-    renderCatTree();
-    return;
-  }
-  // For default categories, find and modify but warn user it resets on reload
-  const defList = type==='despesa' ? DEF_D : DEF_R;
-  const defCat = defList.find(c=>c.id===catId);
-  if(defCat&&defCat.subs){
-    defCat.subs=defCat.subs.filter(s=>s.id!==subId);
-    renderCatTree();
-    showToast('Subcategoria removida (volta ao recarregar o app)','ok');
-  }
+  const cat=[...DEF_D,...DEF_R,...custD,...custR].find(c=>c.id===catId);
+  if(cat&&cat.subs)cat.subs=cat.subs.filter(s=>s.id!==subId);
+  await updateCatInCloud(cat);renderCatTree();
 }
 
 // ═══════════════════════════════════════
@@ -1534,11 +1482,7 @@ function openImport(){
   impUser = document.getElementById('hdrAv').textContent;
   setImpUser(impUser);
   document.getElementById('impResults').innerHTML = '';
-  // Reset file input properly for Safari iOS
-  const oldInput = document.getElementById('impFile');
-  const newInput = oldInput.cloneNode(true);
-  newInput.onchange = handleImgUpload;
-  oldInput.parentNode.replaceChild(newInput, oldInput);
+  document.getElementById('impFile').value = '';
   importItems = [];
   updateImpSaveBtn();
   document.getElementById('importScreen').classList.add('open');
@@ -1561,14 +1505,6 @@ async function handleImgUpload(e){
   try {
     // Convert all images to base64
     const images = await Promise.all(files.map(f => toBase64(f)));
-
-    // Show image previews immediately so user can compare
-    const previewEl = document.getElementById('impPreviews');
-    const previewList = document.getElementById('impPreviewList');
-    previewEl.style.display = 'block';
-    previewList.innerHTML = images.map((img,i) =>
-      `<img src="data:${img.type};base64,${img.data}" style="width:100%;border-radius:10px;border:1px solid var(--border)" alt="Print ${i+1}">`
-    ).join('');
 
     // Build category context for the AI
     const allCats = [...DEF_D, ...DEF_R, ...custD, ...custR];
@@ -1594,7 +1530,7 @@ Para cada transação, retorne um JSON array com objetos no formato:
 {
   "rawName": "nome do estabelecimento exatamente como aparece no print",
   "amount": valor numérico sem R$ (ex: 25.54),
-  "date": "YYYY-MM-DD" — MUITO IMPORTANTE: use a data EXATA que aparece no print. Para prints do C6: a data aparece como "dia DD/MM/YYYY" ou "DD/04" etc. O ano atual é 2026. Se aparecer "11/04" significa 2026-04-11. Se aparecer "12/04" significa 2026-04-12. NUNCA invente datas futuras.
+  "date": "YYYY-MM-DD" (use 2026 se o ano não aparecer),
   "type": "despesa" ou "receita",
   "suggestedDesc": "nome amigável e curto para o lançamento (ex: Cantina, iFood, Shell)",
   "suggestedCatName": "nome exato de uma das categorias listadas acima que melhor se encaixa, OU sugestão de nova categoria se nenhuma se encaixar",
@@ -1611,14 +1547,11 @@ EXEMPLOS DE RACIOCÍNIO:
 - "DROGARIA SP" → suggestedDesc: "Farmácia", suggestedCatName: "Saúde", suggestedSubName: "Farmácia"
 - "IFOOD" → suggestedDesc: "iFood", suggestedCatName: "Alimentação", suggestedSubName: "Delivery"
 
-REGRAS CRÍTICAS:
-1. Extraia APENAS transações com valor R$ claramente visível
-2. NUNCA invente, suponha ou complete dados — só o que está escrito
-3. A data deve ser EXATAMENTE a que aparece no print — não mude nada
-4. Para C6 notificação: a data está em "dia DD/MM/YYYY às HH:MM" — use essa data
-5. Para C6 extrato: a data está na primeira coluna "DD/MM" — use essa data com ano 2026
-6. Retorne APENAS o JSON array, sem texto, sem markdown
-7. Se tiver dúvida sobre qualquer dado, NÃO inclua a transação`
+REGRAS:
+- Extraia TODAS as transações visíveis
+- Para notificações C6: "Sua compra no cartão final XXXX no valor de R$ X,XX, dia DD/MM/YYYY, em ESTABELECIMENTO"
+- Para extrato C6: linhas com data, nome e valor
+- Retorne APENAS o JSON array, sem texto, sem markdown`
       }
     ];
 
@@ -1637,19 +1570,7 @@ REGRAS CRÍTICAS:
     };
     const data = await callAnthropicAPI(apiPayload, apiHeaders);
     const raw = data.content?.find(b=>b.type==='text')?.text || '[]';
-    let parsed = JSON.parse(raw.replace(/```json|```/g,'').trim());
-    // Guarantee parsed is always an array
-    if(!Array.isArray(parsed)) parsed = parsed.transactions || parsed.items || [];
-
-    // VALIDAÇÃO DE SEGURANÇA — remove itens suspeitos ou inválidos
-    parsed = parsed.filter(item => {
-      if(!item.amount || item.amount <= 0 || item.amount > 50000) return false;
-      if(!item.rawName || item.rawName.trim().length < 2) return false;
-      if(!item.date || !/^\d{4}-\d{2}-\d{2}$/.test(item.date)) return false;
-      const year = parseInt(item.date.split('-')[0]);
-      if(year < 2025 || year > 2027) return false;
-      return true;
-    });
+    const parsed = JSON.parse(raw.replace(/```json|```/g,'').trim());
 
     // Process extracted transactions — match pattern or use AI suggestion
     importItems = parsed.map((item, i) => {
@@ -1699,7 +1620,7 @@ REGRAS CRÍTICAS:
         catId,
         subId,
         desc: pattern?.desc || item.suggestedDesc || item.rawName,
-        confirmed: false, // user must explicitly confirm
+        confirmed: !isDup,
         isDup,
         aiSuggestCat,  // suggestion for new cat
         aiSuggestSub,  // suggestion for new sub in existing cat
@@ -1723,27 +1644,9 @@ function toBase64(file){
   });
 }
 
-function normalizeDate(d){
-  // Ensure YYYY-MM-DD with zero-padded month and day
-  if(!d) return '';
-  const parts = d.split('-');
-  if(parts.length!==3) return d;
-  return parts[0]+'-'+parts[1].padStart(2,'0')+'-'+parts[2].padStart(2,'0');
-}
 function checkDuplicate(amount, date){
-  const nd = normalizeDate(date);
-  // Check exact match: same amount AND same date
-  const exactMatch = txs.some(t => Math.abs(t.amount - amount) < 0.01 && normalizeDate(t.date) === nd);
-  if(exactMatch) return true;
-  // Also check: same amount within 7 days window (catches date parsing errors)
-  const d = new Date(date+'T12:00:00');
-  const nearMatch = txs.some(t => {
-    if(Math.abs(t.amount - amount) >= 0.01) return false;
-    const td = new Date(t.date+'T12:00:00');
-    const diff = Math.abs(d - td) / (1000*60*60*24);
-    return diff <= 7;
-  });
-  return nearMatch;
+  // Check if there's already a transaction with same amount on same date
+  return txs.some(t => Math.abs(t.amount - amount) < 0.01 && t.date === date);
 }
 
 function renderImportResults(){
@@ -1840,12 +1743,9 @@ function renderRevCard(item){
       <div class="rev-card-info">
         <div class="rev-card-desc">${item.desc||item.rawName}</div>
         <div class="rev-card-meta">
-          <span style="background:var(--surf3);border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:12px;font-weight:700;color:var(--text)">📅 ${dateFormatted}</span>
+          <span>${dateFormatted}</span>
+          <span>·</span>
           <span style="font-size:10px;color:var(--muted2)">${item.rawName}</span>
-        </div>
-        <div style="margin-top:5px">
-          <input type="date" value="${item.date}" onchange="updateImpDate('${item.id}',this.value)"
-            style="background:none;border:none;outline:none;font-size:11px;color:var(--muted);font-family:'DM Sans',sans-serif;cursor:pointer">
         </div>
       </div>
       <div class="rev-card-amt" style="color:${amtColor}">${sign} ${fmt(item.amount)}</div>
@@ -1862,31 +1762,10 @@ function renderRevCard(item){
   </div>`;
 }
 
-function updateImpDate(id, newDate){
-  const item = importItems.find(i=>i.id===id);
-  if(!item) return;
-  item.date = newDate;
-  // Re-check duplicate with new date
-  item.isDup = checkDuplicate(item.amount, newDate);
-  renderImportResults();
-}
-
 function toggleImpItem(id, confirm){
   const item = importItems.find(i=>i.id===id);
   if(!item) return;
   item.confirmed = confirm;
-  renderImportResults();
-}
-
-function confirmAll(){
-  // Confirm only non-duplicate items that have a category
-  const noCategory = importItems.filter(i=>!i.isDup && !i.catId).length;
-  if(noCategory > 0){
-    showToast(`⚠️ ${noCategory} item(s) sem categoria — selecione antes de confirmar`,'err');
-  }
-  importItems.forEach(item => {
-    if(!item.isDup && item.catId) item.confirmed = true;
-  });
   renderImportResults();
 }
 
@@ -1966,7 +1845,25 @@ function openImpCatPicker(id){
   document.getElementById('subcatPicker')._impMode = true;
 }
 
-// selectCatOnly and selectCatSub handle both launch and import modes (defined above)
+// Patch selectCatOnly and selectCatSub to handle import mode
+const _origSelectCatOnly = selectCatOnly;
+const _origSelectCatSub = selectCatSub;
+function selectCatOnly(id){
+  if(impPickingForId){
+    const item = importItems.find(i=>i.id===impPickingForId);
+    if(item){ item.catId=id; item.subId=null; }
+    impPickingForId=null; closeSubcatPicker(); renderImportResults(); return;
+  }
+  _origSelectCatOnly(id);
+}
+function selectCatSub(cId,sId){
+  if(impPickingForId){
+    const item = importItems.find(i=>i.id===impPickingForId);
+    if(item){ item.catId=cId; item.subId=sId; }
+    impPickingForId=null; closeSubcatPicker(); renderImportResults(); return;
+  }
+  _origSelectCatSub(cId,sId);
+}
 
 function updateImpSaveBtn(){
   const btn = document.getElementById('impSaveAll');
@@ -2027,9 +1924,7 @@ async function runAnalysis(){
   const btn = document.getElementById('anaBtn');
   const resEl = document.getElementById('anaResult');
   btn.disabled = true;
-  resEl.innerHTML = `<div class="ana-loading"><span class="spin">🤖</span><div class="ana-loading-txt">Buscando dados atualizados...<br><span style="font-size:12px;color:var(--muted)">Isso pode levar alguns segundos</span></div></div>`;
-  // Always refresh data before analysis to ensure accuracy
-  await loadFromCloud();
+  resEl.innerHTML = `<div class="ana-loading"><span class="spin">🤖</span><div class="ana-loading-txt">Analisando seus gastos...<br><span style="font-size:12px;color:var(--muted)">Isso pode levar alguns segundos</span></div></div>`;
 
   try {
     // Gather data for the selected period
