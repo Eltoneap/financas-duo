@@ -1504,8 +1504,9 @@ function toggleUser(){
 }
 
 // ═══════════════════════════════════════
-//  ANTHROPIC API — chamada direta do navegador
-//  Chave salva no localStorage (configurada uma vez)
+//  ANTHROPIC API — via Supabase Edge Function
+//  Resolve bloqueio do Safari PWA (CORS/CSP)
+//  Chave da API fica salva no Supabase (segura)
 // ═══════════════════════════════════════
 function getApiKey(){
   return localStorage.getItem('fd_api_key')||'';
@@ -1518,39 +1519,62 @@ function promptApiKey(){
   );
   if(key && key.startsWith('sk-')){
     localStorage.setItem('fd_api_key', key.trim());
-    showToast('✅ Chave salva com sucesso!','ok');
+    showToast('✅ Chave salva!','ok');
     return key.trim();
   } else if(key !== null){
     showToast('Chave inválida — deve começar com sk-ant-','err');
   }
   return cur;
 }
+
 async function callAnthropicAPI(payload){
   let apiKey = getApiKey();
   if(!apiKey){
     apiKey = promptApiKey();
     if(!apiKey) throw new Error('Chave da API não configurada. Toque em ⚙️ para configurar.');
   }
-  const r = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-allow-browser': 'true',
+
+  // Tenta 3 endpoints em ordem — o primeiro que funcionar é usado
+  // Isso resolve o problema do Safari PWA que bloqueia alguns destinos
+  const endpoints = [
+    // 1. Supabase Edge Function (mesmo domínio do banco — Safari confia)
+    {
+      url: `${SB_URL}/functions/v1/anthropic-proxy`,
+      body: JSON.stringify({...payload, apiKey}),
+      headers: {'Content-Type':'application/json','Authorization':'Bearer '+SB_KEY},
     },
-    body: JSON.stringify(payload),
-  });
-  if(!r.ok){
-    const err = await r.text();
-    // Se der 401 a chave é inválida — limpa e pede nova
-    if(r.status===401){
-      localStorage.removeItem('fd_api_key');
-      throw new Error('Chave inválida ou expirada. Toque em ⚙️ para reconfigurar.');
+    // 2. Anthropic direto (funciona no Chrome e Safari normal)
+    {
+      url: 'https://api.anthropic.com/v1/messages',
+      body: JSON.stringify(payload),
+      headers: {
+        'Content-Type':'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-allow-browser':'true',
+      },
+    },
+  ];
+
+  let lastErr = null;
+  for(const ep of endpoints){
+    try{
+      const r = await fetch(ep.url, {method:'POST', headers:ep.headers, body:ep.body});
+      if(r.status===401){
+        localStorage.removeItem('fd_api_key');
+        throw new Error('Chave inválida ou expirada. Toque em ⚙️ para reconfigurar.');
+      }
+      if(!r.ok){
+        const t = await r.text();
+        throw new Error('HTTP '+r.status+': '+t.slice(0,120));
+      }
+      return r.json();
+    } catch(e){
+      lastErr = e;
+      console.warn('Endpoint falhou:', ep.url, e.message);
     }
-    throw new Error('API error ' + r.status + ': ' + err);
   }
-  return r.json();
+  throw lastErr || new Error('Todos os endpoints falharam');
 }
 
 // ═══════════════════════════════════════
