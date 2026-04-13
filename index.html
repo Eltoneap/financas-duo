@@ -1505,24 +1505,25 @@ function toggleUser(){
 
 // ═══════════════════════════════════════
 //  ANTHROPIC API — via Supabase Edge Function
-//  Resolve bloqueio do Safari PWA (CORS/CSP)
-//  Chave da API fica salva no Supabase (segura)
+//  Resolve bloqueio do Safari PWA
 // ═══════════════════════════════════════
 function getApiKey(){
-  return localStorage.getItem('fd_api_key')||'';
+  // Tenta localStorage e também sessionStorage como fallback
+  return localStorage.getItem('fd_api_key') || sessionStorage.getItem('fd_api_key') || '';
+}
+function saveApiKey(key){
+  try { localStorage.setItem('fd_api_key', key); } catch(e){}
+  try { sessionStorage.setItem('fd_api_key', key); } catch(e){}
 }
 function promptApiKey(){
   const cur = getApiKey();
-  const key = window.prompt(
-    'Cole sua chave da API Anthropic (começa com sk-ant-):',
-    cur||''
-  );
-  if(key && key.startsWith('sk-')){
-    localStorage.setItem('fd_api_key', key.trim());
+  const key = window.prompt('Cole sua chave da API Anthropic (começa com sk-ant-):', cur||'');
+  if(key && key.trim().length > 10){
+    saveApiKey(key.trim());
     showToast('✅ Chave salva!','ok');
     return key.trim();
-  } else if(key !== null){
-    showToast('Chave inválida — deve começar com sk-ant-','err');
+  } else if(key !== null && key.trim().length > 0){
+    showToast('Chave inválida','err');
   }
   return cur;
 }
@@ -1534,47 +1535,44 @@ async function callAnthropicAPI(payload){
     if(!apiKey) throw new Error('Chave da API não configurada. Toque em ⚙️ para configurar.');
   }
 
-  // Tenta 3 endpoints em ordem — o primeiro que funcionar é usado
-  // Isso resolve o problema do Safari PWA que bloqueia alguns destinos
-  const endpoints = [
-    // 1. Supabase Edge Function (mesmo domínio do banco — Safari confia)
-    {
-      url: `${SB_URL}/functions/v1/anthropic-proxy`,
+  // 1a tentativa: Supabase Edge Function (contorna CORS do Safari PWA)
+  try{
+    const r = await fetch(`${SB_URL}/functions/v1/anthropic-proxy`, {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':'Bearer '+SB_KEY,
+        'apikey': SB_KEY,
+      },
       body: JSON.stringify({...payload, apiKey}),
-      headers: {'Content-Type':'application/json','Authorization':'Bearer '+SB_KEY},
-    },
-    // 2. Anthropic direto (funciona no Chrome e Safari normal)
-    {
-      url: 'https://api.anthropic.com/v1/messages',
-      body: JSON.stringify(payload),
-      headers: {
+    });
+    if(r.status===401){ localStorage.removeItem('fd_api_key'); throw new Error('Chave inválida. Toque ⚙️ para reconfigurar.'); }
+    if(r.ok) return r.json();
+    const txt = await r.text();
+    console.warn('Supabase proxy falhou:', r.status, txt.slice(0,100));
+  } catch(e){
+    console.warn('Supabase proxy erro:', e.message);
+  }
+
+  // 2a tentativa: Anthropic direto (Safari normal / Chrome)
+  try{
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{
         'Content-Type':'application/json',
         'x-api-key': apiKey,
         'anthropic-version':'2023-06-01',
         'anthropic-dangerous-allow-browser':'true',
       },
-    },
-  ];
-
-  let lastErr = null;
-  for(const ep of endpoints){
-    try{
-      const r = await fetch(ep.url, {method:'POST', headers:ep.headers, body:ep.body});
-      if(r.status===401){
-        localStorage.removeItem('fd_api_key');
-        throw new Error('Chave inválida ou expirada. Toque em ⚙️ para reconfigurar.');
-      }
-      if(!r.ok){
-        const t = await r.text();
-        throw new Error('HTTP '+r.status+': '+t.slice(0,120));
-      }
-      return r.json();
-    } catch(e){
-      lastErr = e;
-      console.warn('Endpoint falhou:', ep.url, e.message);
-    }
+      body: JSON.stringify(payload),
+    });
+    if(r.status===401){ localStorage.removeItem('fd_api_key'); throw new Error('Chave inválida. Toque ⚙️ para reconfigurar.'); }
+    if(r.ok) return r.json();
+    throw new Error('HTTP '+r.status);
+  } catch(e){
+    console.warn('Anthropic direto erro:', e.message);
+    throw new Error('Não foi possível conectar à IA. Verifique sua conexão e a chave da API (⚙️).');
   }
-  throw lastErr || new Error('Todos os endpoints falharam');
 }
 
 // ═══════════════════════════════════════
