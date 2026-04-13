@@ -1504,18 +1504,50 @@ function toggleUser(){
 }
 
 // ═══════════════════════════════════════
-//  ANTHROPIC API CALLER WITH PROXY FALLBACKS
-//  Safari PWA blocks direct API calls — try multiple proxies
+//  ANTHROPIC API — chamada direta do navegador
+//  Chave salva no localStorage (configurada uma vez)
 // ═══════════════════════════════════════
-async function callAnthropicAPI(payload, headers){
-  // Call our Netlify function — same domain, no CORS issues on Safari PWA
-  const r = await fetch('/api/anthropic', {
+function getApiKey(){
+  return localStorage.getItem('fd_api_key')||'';
+}
+function promptApiKey(){
+  const cur = getApiKey();
+  const key = window.prompt(
+    'Cole sua chave da API Anthropic (começa com sk-ant-):',
+    cur||''
+  );
+  if(key && key.startsWith('sk-')){
+    localStorage.setItem('fd_api_key', key.trim());
+    showToast('✅ Chave salva com sucesso!','ok');
+    return key.trim();
+  } else if(key !== null){
+    showToast('Chave inválida — deve começar com sk-ant-','err');
+  }
+  return cur;
+}
+async function callAnthropicAPI(payload){
+  let apiKey = getApiKey();
+  if(!apiKey){
+    apiKey = promptApiKey();
+    if(!apiKey) throw new Error('Chave da API não configurada. Toque em ⚙️ para configurar.');
+  }
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-allow-browser': 'true',
+    },
     body: JSON.stringify(payload),
   });
   if(!r.ok){
     const err = await r.text();
+    // Se der 401 a chave é inválida — limpa e pede nova
+    if(r.status===401){
+      localStorage.removeItem('fd_api_key');
+      throw new Error('Chave inválida ou expirada. Toque em ⚙️ para reconfigurar.');
+    }
     throw new Error('API error ' + r.status + ': ' + err);
   }
   return r.json();
@@ -1721,20 +1753,12 @@ REGRAS CRÍTICAS:
       }
     ];
 
-    const ANTHROPIC_KEY = ''; // Chave gerenciada pelo servidor Netlify
-    // Call Anthropic API with fallback proxies for Safari PWA compatibility
     const apiPayload = {
       model: 'claude-sonnet-4-20250514',
       max_tokens: 4000,
       messages: [{ role: 'user', content }]
     };
-    const apiHeaders = {
-      'Content-Type': 'application/json',
-      'x-api-key': ANTHROPIC_KEY,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-allow-browser': 'true',
-    };
-    const data = await callAnthropicAPI(apiPayload, apiHeaders);
+    const data = await callAnthropicAPI(apiPayload);
     const raw = data.content?.find(b=>b.type==='text')?.text || '[]';
     let parsed = safeParseImportJSON(raw);
 
@@ -2233,24 +2257,12 @@ Alertas sobre gastos que merecem atenção ou cresceram muito.
 
 Seja direto, use os nomes reais das categorias e estabelecimentos, e forneça insights genuinamente úteis. Não seja genérico.`;
 
-    const ANTHROPIC_KEY = document.querySelector('script') ? 
-      '' : '';
-
-    // Reuse same key from import function
-    const apiKey = ''; // Key handled server-side
-
     const apiPayload2 = {
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1500,
       messages: [{ role: 'user', content: prompt }]
     };
-    const apiHeaders2 = {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-allow-browser': 'true',
-    };
-    const data = await callAnthropicAPI(apiPayload2, apiHeaders2);
+    const data = await callAnthropicAPI(apiPayload2);
     const text = data.content?.find(b=>b.type==='text')?.text || 'Não foi possível gerar a análise.';
 
     // Render with simple markdown parsing
