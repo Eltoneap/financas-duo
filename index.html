@@ -1505,18 +1505,19 @@ function toggleUser(){
 
 // ═══════════════════════════════════════
 //  ANTHROPIC API — via Cloudflare Worker
-//  Sem bloqueio no Safari PWA
+//  Chave fica no Worker (segura, não exposta)
 // ═══════════════════════════════════════
-const ANTHROPIC_KEY = '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';
 const CF_WORKER = 'https://finiop-ai.eltonpereira.workers.dev';
 
 function promptApiKey(){ showToast('IA configurada ✅','ok'); }
 
 async function callAnthropicAPI(payload){
+  // Chama o Worker direto — sem passar chave no HTML
+  // A chave fica armazenada com segurança no Cloudflare Worker
   const r = await fetch(CF_WORKER, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({...payload, apiKey: ANTHROPIC_KEY}),
+    body: JSON.stringify(payload),
   });
   if(!r.ok){
     const txt = await r.text();
