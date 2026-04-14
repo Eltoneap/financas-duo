@@ -1504,50 +1504,25 @@ function toggleUser(){
 }
 
 // ═══════════════════════════════════════
-//  ANTHROPIC API — via Supabase Edge Function
-//  Chave embutida + fallback direto
+//  ANTHROPIC API — via Cloudflare Worker
+//  Sem bloqueio no Safari PWA
 // ═══════════════════════════════════════
 const ANTHROPIC_KEY = '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';
+const CF_WORKER = 'https://finiop-ai.eltonpereira.workers.dev';
 
-function promptApiKey(){ showToast('Chave já configurada ✅','ok'); }
+function promptApiKey(){ showToast('IA configurada ✅','ok'); }
 
 async function callAnthropicAPI(payload){
-  // 1a tentativa: Supabase Edge Function (sem CORS no Safari PWA)
-  try{
-    const r = await fetch(`${SB_URL}/functions/v1/anthropic-proxy`, {
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'Authorization':'Bearer '+SB_KEY,
-        'apikey': SB_KEY,
-      },
-      body: JSON.stringify({...payload, apiKey: ANTHROPIC_KEY}),
-    });
-    if(r.ok) return r.json();
+  const r = await fetch(CF_WORKER, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({...payload, apiKey: ANTHROPIC_KEY}),
+  });
+  if(!r.ok){
     const txt = await r.text();
-    console.warn('Supabase proxy falhou:', r.status, txt.slice(0,100));
-  } catch(e){
-    console.warn('Supabase proxy erro:', e.message);
+    throw new Error('Erro IA: ' + r.status + ' ' + txt.slice(0,80));
   }
-
-  // 2a tentativa: Anthropic direto
-  try{
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'x-api-key': ANTHROPIC_KEY,
-        'anthropic-version':'2023-06-01',
-        'anthropic-dangerous-allow-browser':'true',
-      },
-      body: JSON.stringify(payload),
-    });
-    if(r.ok) return r.json();
-    throw new Error('HTTP '+r.status);
-  } catch(e){
-    console.warn('Anthropic direto erro:', e.message);
-    throw new Error('Erro de conexão com a IA. Verifique sua internet.');
-  }
+  return r.json();
 }
 
 // ═══════════════════════════════════════
