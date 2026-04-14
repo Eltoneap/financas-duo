@@ -1505,37 +1505,14 @@ function toggleUser(){
 
 // ═══════════════════════════════════════
 //  ANTHROPIC API — via Supabase Edge Function
-//  Resolve bloqueio do Safari PWA
+//  Chave embutida + fallback direto
 // ═══════════════════════════════════════
-function getApiKey(){
-  // Tenta localStorage e também sessionStorage como fallback
-  return localStorage.getItem('fd_api_key') || sessionStorage.getItem('fd_api_key') || '';
-}
-function saveApiKey(key){
-  try { localStorage.setItem('fd_api_key', key); } catch(e){}
-  try { sessionStorage.setItem('fd_api_key', key); } catch(e){}
-}
-function promptApiKey(){
-  const cur = getApiKey();
-  const key = window.prompt('Cole sua chave da API Anthropic (começa com sk-ant-):', cur||'');
-  if(key && key.trim().length > 10){
-    saveApiKey(key.trim());
-    showToast('✅ Chave salva!','ok');
-    return key.trim();
-  } else if(key !== null && key.trim().length > 0){
-    showToast('Chave inválida','err');
-  }
-  return cur;
-}
+const ANTHROPIC_KEY = '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';
+
+function promptApiKey(){ showToast('Chave já configurada ✅','ok'); }
 
 async function callAnthropicAPI(payload){
-  let apiKey = getApiKey();
-  if(!apiKey){
-    apiKey = promptApiKey();
-    if(!apiKey) throw new Error('Chave da API não configurada. Toque em ⚙️ para configurar.');
-  }
-
-  // 1a tentativa: Supabase Edge Function (contorna CORS do Safari PWA)
+  // 1a tentativa: Supabase Edge Function (sem CORS no Safari PWA)
   try{
     const r = await fetch(`${SB_URL}/functions/v1/anthropic-proxy`, {
       method:'POST',
@@ -1544,9 +1521,8 @@ async function callAnthropicAPI(payload){
         'Authorization':'Bearer '+SB_KEY,
         'apikey': SB_KEY,
       },
-      body: JSON.stringify({...payload, apiKey}),
+      body: JSON.stringify({...payload, apiKey: ANTHROPIC_KEY}),
     });
-    if(r.status===401){ localStorage.removeItem('fd_api_key'); throw new Error('Chave inválida. Toque ⚙️ para reconfigurar.'); }
     if(r.ok) return r.json();
     const txt = await r.text();
     console.warn('Supabase proxy falhou:', r.status, txt.slice(0,100));
@@ -1554,24 +1530,23 @@ async function callAnthropicAPI(payload){
     console.warn('Supabase proxy erro:', e.message);
   }
 
-  // 2a tentativa: Anthropic direto (Safari normal / Chrome)
+  // 2a tentativa: Anthropic direto
   try{
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method:'POST',
       headers:{
         'Content-Type':'application/json',
-        'x-api-key': apiKey,
+        'x-api-key': ANTHROPIC_KEY,
         'anthropic-version':'2023-06-01',
         'anthropic-dangerous-allow-browser':'true',
       },
       body: JSON.stringify(payload),
     });
-    if(r.status===401){ localStorage.removeItem('fd_api_key'); throw new Error('Chave inválida. Toque ⚙️ para reconfigurar.'); }
     if(r.ok) return r.json();
     throw new Error('HTTP '+r.status);
   } catch(e){
     console.warn('Anthropic direto erro:', e.message);
-    throw new Error('Não foi possível conectar à IA. Verifique sua conexão e a chave da API (⚙️).');
+    throw new Error('Erro de conexão com a IA. Verifique sua internet.');
   }
 }
 
