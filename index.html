@@ -1284,7 +1284,8 @@ async function submitLaunch(){
       } else {
         // Update only this one, keep date unchanged
         // B2 fix: se repeat foi ATIVADO num lançamento simples (sem série), criar os futuros
-        const wasSimple = !tx?.repeat && !tx?.group_id || tx?.group_id === tx?.id;
+        const isInSeries = txs.some(t => t.id !== editingTxId && t.group_id === tx?.group_id);
+        const wasSimple = !isInSeries;
         if(repeat && wasSimple){
           // Criar série a partir deste lançamento
           const newGroupId='g_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
