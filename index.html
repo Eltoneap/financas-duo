@@ -1284,8 +1284,8 @@ async function submitLaunch(){
       } else {
         // Update only this one, keep date unchanged
         // B2 fix: se repeat foi ATIVADO num lançamento simples (sem série), criar os futuros
-        const isInSeries = txs.some(t => t.id !== editingTxId && t.group_id === tx?.group_id);
-        const wasSimple = !isInSeries;
+        // wasSimple: o lançamento original NÃO tinha repeat ativo (independente de siblings)
+        const wasSimple = !tx?.repeat;
         if(repeat && wasSimple){
           // Criar série a partir deste lançamento
           const newGroupId='g_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
