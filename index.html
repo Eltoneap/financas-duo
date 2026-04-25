@@ -1283,11 +1283,38 @@ async function submitLaunch(){
         showToast(`✅ Série atualizada (${Math.min(repeatN,keep.length)} lançamentos)!`,'ok');
       } else {
         // Update only this one, keep date unchanged
-        const patch={...updated,date:baseDate};
-        await sbPatch('transactions',editingTxId,patch);
-        const idx=txs.findIndex(t=>t.id===editingTxId);
-        if(idx>=0)txs[idx]={...txs[idx],...rowToTx({id:editingTxId,group_id:tx?.group_id||editingTxId,...patch,description:descFinal}),desc:descFinal};
-        showToast('✅ Lançamento atualizado!','ok');
+        // B2 fix: se repeat foi ATIVADO num lançamento simples (sem série), criar os futuros
+        const wasSimple = !tx?.repeat && !tx?.group_id || tx?.group_id === tx?.id;
+        if(repeat && wasSimple){
+          // Criar série a partir deste lançamento
+          const newGroupId='g_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
+          // Patch no lançamento atual: vira repeat_index 1
+          const patch1={...updated,date:baseDate,group_id:newGroupId,repeat_tx:true,
+            repeat_unit:lsRepeatUnit,repeat_n:repeatN,repeat_index:1,repeat_total:repeatN};
+          await sbPatch('transactions',editingTxId,patch1);
+          const idx=txs.findIndex(t=>t.id===editingTxId);
+          if(idx>=0)txs[idx]={...txs[idx],...rowToTx({id:editingTxId,...patch1,description:descFinal}),desc:descFinal};
+          // Criar os lançamentos futuros (índices 2..N)
+          if(repeatN>1){
+            const allDates=generateRecurringDates(baseDate,lsRepeatUnit,repeatN);
+            const futureDates=allDates.slice(1); // pula o primeiro (já existe)
+            const rows=futureDates.map((date,i)=>txToRow({
+              id:uid(),group_id:newGroupId,type:lsType,amount,desc:descFinal,obs,date,
+              catId:lsSelCatId,subId:lsSelSubId||null,user:lsUser,
+              pago:false,fixo,repeat:true,repeatUnit:lsRepeatUnit,repeatN,
+              repeatIndex:i+2,repeatTotal:repeatN,
+            }));
+            await sbPostBatch('transactions',rows);
+            rows.forEach(r=>txs.push(rowToTx(r)));
+          }
+          showToast(`✅ Série criada: ${repeatN} lançamentos!`,'ok');
+        } else {
+          const patch={...updated,date:baseDate};
+          await sbPatch('transactions',editingTxId,patch);
+          const idx=txs.findIndex(t=>t.id===editingTxId);
+          if(idx>=0)txs[idx]={...txs[idx],...rowToTx({id:editingTxId,group_id:tx?.group_id||editingTxId,...patch,description:descFinal}),desc:descFinal};
+          showToast('✅ Lançamento atualizado!','ok');
+        }
       }
     } else {
       // CREATE — build all rows first, then batch insert in one call
@@ -1828,18 +1855,9 @@ function normalizeDate(d){
 }
 function checkDuplicate(amount, date){
   const nd = normalizeDate(date);
-  // Check exact match: same amount AND same date
+  // Duplicata: mesmo valor E mesma data exata
   const exactMatch = txs.some(t => Math.abs(t.amount - amount) < 0.01 && normalizeDate(t.date) === nd);
-  if(exactMatch) return true;
-  // Also check: same amount within 7 days window (catches date parsing errors)
-  const d = new Date(date+'T12:00:00');
-  const nearMatch = txs.some(t => {
-    if(Math.abs(t.amount - amount) >= 0.01) return false;
-    const td = new Date(t.date+'T12:00:00');
-    const diff = Math.abs(d - td) / (1000*60*60*24);
-    return diff <= 7;
-  });
-  return nearMatch;
+  return exactMatch;
 }
 
 function renderImportResults(){
