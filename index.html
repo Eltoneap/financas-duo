@@ -154,6 +154,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .btn-del-cat2:hover{background:var(--rdim);color:var(--red)}
 .btn-new-cat{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;background:var(--surf2);border:1px dashed var(--border);border-radius:var(--rs);padding:13px;font-weight:700;font-size:13px;color:var(--muted);cursor:pointer;transition:all .2s;margin-top:8px}
 .btn-new-cat:hover{border-color:var(--blue);color:var(--blue)}
+/* U5/U6: edit buttons in cat tree */
+.btn-edit-cat2{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:3px 5px;border-radius:6px;transition:all .2s;flex-shrink:0}
+.btn-edit-cat2:hover{background:var(--bdim);color:var(--blue)}
+.btn-edit-sub{background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;padding:2px 4px;border-radius:5px;transition:all .2s;line-height:1}
+.btn-edit-sub:hover{color:var(--blue)}
+/* U5: nova sub inline no picker */
+.scp-add-sub-btn{display:flex;align-items:center;gap:6px;padding:9px 14px;color:var(--green);font-size:12px;font-weight:600;cursor:pointer;background:none;border:none;border-top:1px dashed rgba(0,229,160,.2);width:100%;font-family:'DM Sans',sans-serif;transition:opacity .2s}
+.scp-add-sub-btn:hover{opacity:.7}
+/* U7: cat search clear button visibility */
+#catSearchInp:not(:placeholder-shown) ~ #catSearchClear{display:block!important}
 
 .bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(--surf);border-top:1px solid var(--border);display:flex;padding:9px 0 20px;z-index:50}
 .nav-btn{flex:1;background:none;border:none;color:var(--muted);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:19px;padding:5px 0;transition:all .2s;position:relative}
@@ -457,6 +467,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <button class="type-tab active" id="catTabD" onclick="switchCatTab('despesa')">📉 Despesas</button>
       <button class="type-tab" id="catTabR" onclick="switchCatTab('receita')">📈 Receitas</button>
     </div>
+    <!-- U7: busca de categorias -->
+    <div class="search-bar" style="margin:0 0 10px 0">
+      <span class="search-ico">🔍</span>
+      <input type="text" class="search-inp" id="catSearchInp" placeholder="Buscar categoria ou subcategoria..." oninput="renderCatTree()">
+      <button class="search-clear" id="catSearchClear" onclick="document.getElementById('catSearchInp').value='';renderCatTree()" style="display:none">✕</button>
+    </div>
     <div class="cat-tree" id="catTree"></div>
     <button class="btn-new-cat" onclick="openNewCatModal()">＋ Nova categoria</button>
   </div>
@@ -639,7 +655,23 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <button class="scp-back" onclick="closeSubcatPicker()">← Voltar</button>
     <div class="scp-title">Selecionar categoria</div>
   </div>
+  <!-- U5: nova categoria/sub sem fechar lançamento -->
+  <div style="padding:10px 14px 0">
+    <button class="btn-new-cat" onclick="openNewCatFromPicker()" style="width:100%;margin:0;padding:11px;font-size:13px">＋ Nova categoria</button>
+  </div>
   <div class="scp-body" id="scpBody"></div>
+</div>
+
+<!-- U6: EDIT CAT MODAL -->
+<div class="overlay" id="overlayEditCat" onclick="if(event.target===this)closeEditCatModal()">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title mt-b" id="editCatTitle">✏️ Editar Categoria</div>
+    <div class="fg"><label class="fl">Nome</label><input type="text" class="fi" id="editCatName" placeholder="Nome da categoria"></div>
+    <div class="fg"><label class="fl">Emoji</label><div class="emoji-grid" id="emojiGridEdit"></div></div>
+    <div style="margin-top:10px;padding:12px;background:var(--surf2);border-radius:var(--rs);text-align:center;font-size:26px" id="editCatPreview">📦</div>
+    <button class="btn-sub b" onclick="submitEditCat()" style="margin-top:14px">Salvar alterações</button>
+  </div>
 </div>
 
 <!-- NEW CAT MODAL -->
@@ -1024,19 +1056,32 @@ function renderCharts(){
   else{uEl.innerHTML=`<div style="margin-bottom:12px"><div style="font-size:10px;color:var(--muted);margin-bottom:7px;text-transform:uppercase;letter-spacing:1px">📉 Despesas</div><div class="bar-row"><div class="bar-lbl"><div class="av av-e" style="width:18px;height:18px;font-size:8px;flex-shrink:0">E</div> Elton</div><div class="bar-track"><div class="bar-fill" style="width:${eD/mx*100}%;background:var(--green)"></div></div><div class="bar-val">${fmt(eD)}</div></div><div class="bar-row"><div class="bar-lbl"><div class="av av-c" style="width:18px;height:18px;font-size:8px;flex-shrink:0">C</div> Cláudia</div><div class="bar-track"><div class="bar-fill" style="width:${cD/mx*100}%;background:var(--muted)"></div></div><div class="bar-val">${fmt(cD)}</div></div><div class="bar-row"><div class="bar-lbl"><div class="av av-s" style="width:18px;height:18px;font-size:8px;flex-shrink:0">S</div> Saulo</div><div class="bar-track"><div class="bar-fill" style="width:${sD/mx*100}%;background:var(--blue)"></div></div><div class="bar-val">${fmt(sD)}</div></div></div><div><div style="font-size:10px;color:var(--muted);margin-bottom:7px;text-transform:uppercase;letter-spacing:1px">📈 Receitas</div><div class="bar-row"><div class="bar-lbl"><div class="av av-e" style="width:18px;height:18px;font-size:8px;flex-shrink:0">E</div> Elton</div><div class="bar-track"><div class="bar-fill" style="width:${eR/mx*100}%;background:var(--green)"></div></div><div class="bar-val" style="color:var(--green)">${fmt(eR)}</div></div><div class="bar-row"><div class="bar-lbl"><div class="av av-c" style="width:18px;height:18px;font-size:8px;flex-shrink:0">C</div> Cláudia</div><div class="bar-track"><div class="bar-fill" style="width:${cR/mx*100}%;background:var(--muted)"></div></div><div class="bar-val" style="color:var(--muted2)">${fmt(cR)}</div></div><div class="bar-row"><div class="bar-lbl"><div class="av av-s" style="width:18px;height:18px;font-size:8px;flex-shrink:0">S</div> Saulo</div><div class="bar-track"><div class="bar-fill" style="width:${sR/mx*100}%;background:var(--blue)"></div></div><div class="bar-val" style="color:var(--blue)">${fmt(sR)}</div></div></div>`;}
 }
 function renderCatTree(){
-  const cats=getCats(catTab);
+  const q=(document.getElementById('catSearchInp')||{}).value||'';  const qlow=q.toLowerCase().trim();
+  let cats=getCats(catTab);
+  // U7: filter by search query
+  if(qlow){
+    cats=cats.map(c=>{
+      const catMatch=c.name.toLowerCase().includes(qlow)||(c.icon||'').includes(qlow);
+      const filtSubs=(c.subs||[]).filter(s=>s.name.toLowerCase().includes(qlow)||(s.icon||'').includes(qlow));
+      if(catMatch) return c; // show all subs
+      if(filtSubs.length) return{...c,subs:filtSubs,_filtered:true};
+      return null;
+    }).filter(Boolean);
+  }
   document.getElementById('catTree').innerHTML=cats.map(c=>{
     const subs=c.subs||[];
+    const autoOpen=!!qlow; // auto-expand when searching
     return`<div class="cat-node" id="cn_${c.id}">
       <div class="cat-node-hdr" onclick="toggleCatNode('${c.id}')">
         <div class="cat-node-ico">${c.icon}</div>
         <div class="cat-node-name">${c.name}</div>
         <span class="cat-node-count">${subs.length} sub</span>
+        ${!c.def?`<button class="btn-edit-cat2" onclick="event.stopPropagation();openEditCatModal('${c.id}','${catTab}')">✏️</button>`:''}
         ${!c.def?`<button class="btn-del-cat2" onclick="event.stopPropagation();deleteCat('${c.id}','${catTab}')">✕</button>`:''}
-        <span class="cat-node-chev" id="chev_${c.id}">${subs.length?'›':''}</span>
+        <span class="cat-node-chev${autoOpen?' open':''}" id="chev_${c.id}">${subs.length?'›':''}</span>
       </div>
-      <div class="sub-list" id="subs_${c.id}" style="display:none">
-        ${subs.map(s=>`<div class="sub-item"><div class="sub-ico">${s.icon}</div><div class="sub-name">${s.name}</div>${s.def?'<span class="sub-def">padrão</span>':`<button class="btn-del-sub" onclick="deleteSub('${c.id}','${s.id}','${catTab}')">✕</button>`}</div>`).join('')}
+      <div class="sub-list" id="subs_${c.id}" style="display:${autoOpen?'block':'none'}">
+        ${subs.map(s=>`<div class="sub-item"><div class="sub-ico">${s.icon}</div><div class="sub-name">${s.name}</div>${s.def?'<span class="sub-def">padrão</span>':`<span style="display:flex;gap:2px;margin-left:auto"><button class="btn-edit-sub" onclick="openEditSubModal('${c.id}','${s.id}','${catTab}')">✏️</button><button class="btn-del-sub" onclick="deleteSub('${c.id}','${s.id}','${catTab}')">✕</button></span>`}</div>`).join('')}
         <div class="add-sub-row"><button class="btn-add-sub" onclick="openNewSubCatModal('${c.id}','${catTab}')">＋ Subcategoria</button></div>
       </div>
     </div>`;
@@ -1157,6 +1202,8 @@ function openSubcatPicker(){
   document.getElementById('scpBody').innerHTML=cats.map(cat=>{
     const subs=cat.subs||[];
     const isCatSel=lsSelCatId===cat.id&&!lsSelSubId;
+    // U5: "+ Nova sub" per category
+    const addSubBtn=`<button class="scp-add-sub-btn" onclick="openNewSubFromPicker('${cat.id}','${lsType}')">＋ Nova sub em ${cat.name}</button>`;
     return`<div class="scp-cat-section">
       <div class="scp-cat-hdr" onclick="selectCatOnly('${cat.id}')">
         <span style="font-size:20px">${cat.icon}</span>
@@ -1164,6 +1211,7 @@ function openSubcatPicker(){
         ${isCatSel?'<span class="scp-check">✓</span>':'<span style="color:var(--muted);font-size:12px">›</span>'}
       </div>
       ${subs.length?`<div class="scp-subs">${subs.map(s=>{const isSel=lsSelCatId===cat.id&&lsSelSubId===s.id;return`<div class="scp-sub-item${isSel?' sel':''}" onclick="selectCatSub('${cat.id}','${s.id}')"><span class="scp-sub-ico">${s.icon}</span><span class="scp-sub-name">${s.name}</span>${isSel?'<span class="scp-check">✓</span>':''}</div>`;}).join('')}</div>`:`<div class="scp-no-subs"><div class="scp-sub-item" style="color:var(--muted);font-size:12px;cursor:default;pointer-events:none">Sem subcategorias</div></div>`}
+      ${addSubBtn}
     </div>`;
   }).join('');
   document.getElementById('subcatPicker').classList.add('open');
@@ -1459,7 +1507,13 @@ async function submitNewCat(){
   const nc={id:'c_'+Date.now(),icon:nctSelEmoji,name,def:false,subs:[]};
   if(newCatType==='despesa')custD.push(nc);else custR.push(nc);
   await saveCatToCloud(nc,newCatType);
-  closeNewCatModal();switchCatTab(newCatType);
+  closeNewCatModal();
+  // U5: if called from picker, auto-select and refresh picker
+  if(document.getElementById('subcatPicker').classList.contains('open')){
+    lsSelCatId=nc.id;lsSelSubId=null;updateCatPill();openSubcatPicker();showToast('✅ Categoria criada!','ok');
+  } else {
+    switchCatTab(newCatType);showToast('✅ Categoria criada!','ok');
+  }
 }
 
 function openNewSubCatModal(catId,type){
@@ -1480,7 +1534,13 @@ async function submitNewSubCat(){
   const cat=[...DEF_D,...DEF_R,...custD,...custR].find(c=>c.id===newSubForCatId);
   if(cat){if(!cat.subs)cat.subs=[];cat.subs.push(ns);}
   await updateCatInCloud(cat);
-  closeNewSubCatModal();renderCatTree();showToast('✅ Subcategoria criada!','ok');
+  closeNewSubCatModal();
+  // U5: if called from picker, auto-select sub and refresh picker
+  if(document.getElementById('subcatPicker').classList.contains('open')){
+    lsSelCatId=newSubForCatId;lsSelSubId=ns.id;updateCatPill();openSubcatPicker();showToast('✅ Subcategoria criada!','ok');
+  } else {
+    renderCatTree();showToast('✅ Subcategoria criada!','ok');
+  }
 }
 async function deleteCat(id,type){
   if(!confirm('Excluir esta categoria?'))return;
@@ -1506,6 +1566,131 @@ async function deleteSub(catId,subId,type){
     renderCatTree();
     showToast('Subcategoria removida (volta ao recarregar o app)','ok');
   }
+}
+
+// ═══════════════════════════════════════
+//  U5: CRIAR CAT/SUB A PARTIR DO PICKER
+// ═══════════════════════════════════════
+// Guarda contexto para retornar ao picker após criar
+let _pickerCatType=null;
+
+function openNewCatFromPicker(){
+  // Salva o tipo atual e abre modal de nova cat sem fechar picker
+  _pickerCatType=lsType;
+  newCatType=lsType;nctSelEmoji='📦';
+  document.getElementById('nctName').value='';
+  document.getElementById('catPreview').textContent=nctSelEmoji;
+  document.getElementById('nctD').className='tog-btn'+(lsType==='despesa'?' sb':'');
+  document.getElementById('nctR').className='tog-btn'+(lsType==='receita'?' sb':'');
+  buildEmojiGrid('emojiGrid','catPreview',nctSelEmoji,'pickCatEmoji');
+  document.getElementById('overlayCat').classList.add('open');
+}
+
+async function submitNewCatFromPicker(){
+  // override submitNewCat to also refresh picker and auto-select
+  const name=document.getElementById('nctName').value.trim();
+  if(!name){showToast('Dê um nome à categoria!','err');return;}
+  const nc={id:'c_'+Date.now(),icon:nctSelEmoji,name,def:false,subs:[]};
+  if(newCatType==='despesa')custD.push(nc);else custR.push(nc);
+  await saveCatToCloud(nc,newCatType);
+  closeNewCatModal();
+  // auto-select the new category
+  lsSelCatId=nc.id;lsSelSubId=null;
+  updateCatPill();
+  openSubcatPicker(); // refresh picker
+  showToast('✅ Categoria criada!','ok');
+}
+
+function openNewSubFromPicker(catId,type){
+  // Opens sub modal without closing picker
+  newSubForCatId=catId;nscSelEmoji='📌';newCatType=type;
+  const cat=findCat(type,catId);
+  document.getElementById('nscTitle').textContent=`＋ Sub de ${cat?.name||''}`;
+  document.getElementById('nscName').value='';
+  document.getElementById('subPreview').textContent=nscSelEmoji;
+  buildEmojiGrid('emojiGridSub','subPreview',nscSelEmoji,'pickSubEmoji');
+  document.getElementById('overlaySubCat').classList.add('open');
+}
+
+async function submitNewSubFromPicker(){
+  const name=document.getElementById('nscName').value.trim();
+  if(!name){showToast('Dê um nome à subcategoria!','err');return;}
+  const ns={id:'s_'+Date.now(),icon:nscSelEmoji,name,def:false};
+  const cat=[...DEF_D,...DEF_R,...custD,...custR].find(c=>c.id===newSubForCatId);
+  if(cat){if(!cat.subs)cat.subs=[];cat.subs.push(ns);}
+  await updateCatInCloud(cat);
+  closeNewSubCatModal();
+  // auto-select newly created sub
+  lsSelCatId=newSubForCatId;lsSelSubId=ns.id;
+  updateCatPill();
+  openSubcatPicker(); // refresh picker
+  showToast('✅ Subcategoria criada!','ok');
+}
+
+// ═══════════════════════════════════════
+//  U6: EDITAR CATEGORIA / SUBCATEGORIA
+// ═══════════════════════════════════════
+let editingCatId=null,editingCatType=null,editingSubId=null,editSelEmoji='📦';
+
+function openEditCatModal(catId,type){
+  const cat=findCat(type,catId);
+  if(!cat)return;
+  editingCatId=catId;editingCatType=type;editingSubId=null;
+  editSelEmoji=cat.icon||'📦';
+  document.getElementById('editCatTitle').textContent='✏️ Editar Categoria';
+  document.getElementById('editCatName').value=cat.name;
+  document.getElementById('editCatPreview').textContent=editSelEmoji;
+  buildEmojiGrid('emojiGridEdit','editCatPreview',editSelEmoji,'pickEditEmoji');
+  document.getElementById('overlayEditCat').classList.add('open');
+}
+
+function openEditSubModal(catId,subId,type){
+  const cat=findCat(type,catId);
+  const sub=(cat?.subs||[]).find(s=>s.id===subId);
+  if(!sub)return;
+  editingCatId=catId;editingCatType=type;editingSubId=subId;
+  editSelEmoji=sub.icon||'📌';
+  document.getElementById('editCatTitle').textContent='✏️ Editar Subcategoria';
+  document.getElementById('editCatName').value=sub.name;
+  document.getElementById('editCatPreview').textContent=editSelEmoji;
+  buildEmojiGrid('emojiGridEdit','editCatPreview',editSelEmoji,'pickEditEmoji');
+  document.getElementById('overlayEditCat').classList.add('open');
+}
+
+function closeEditCatModal(){document.getElementById('overlayEditCat').classList.remove('open');}
+function pickEditEmoji(e,btn){editSelEmoji=e;document.getElementById('editCatPreview').textContent=e;document.querySelectorAll('#emojiGridEdit .emoji-opt').forEach(b=>b.classList.remove('sel'));btn.classList.add('sel');}
+
+async function submitEditCat(){
+  const name=document.getElementById('editCatName').value.trim();
+  if(!name){showToast('Dê um nome!','err');return;}
+  const custList=editingCatType==='despesa'?custD:custR;
+  const defList=editingCatType==='despesa'?DEF_D:DEF_R;
+  if(editingSubId){
+    // Edit subcategory
+    const cat=[...custList,...defList].find(c=>c.id===editingCatId);
+    if(!cat){showToast('Categoria não encontrada','err');return;}
+    const sub=(cat.subs||[]).find(s=>s.id===editingSubId);
+    if(!sub){showToast('Subcategoria não encontrada','err');return;}
+    sub.name=name;sub.icon=editSelEmoji;
+    if(custList.find(c=>c.id===editingCatId)){
+      await updateCatInCloud(cat);
+      showToast('✅ Subcategoria atualizada!','ok');
+    } else {
+      showToast('Subcategoria padrão atualizada (volta ao recarregar)','ok');
+    }
+  } else {
+    // Edit category
+    const custCat=custList.find(c=>c.id===editingCatId);
+    if(custCat){
+      custCat.name=name;custCat.icon=editSelEmoji;
+      await updateCatInCloud(custCat);
+      showToast('✅ Categoria atualizada!','ok');
+    } else {
+      const defCat=defList.find(c=>c.id===editingCatId);
+      if(defCat){defCat.name=name;defCat.icon=editSelEmoji;showToast('Categoria padrão atualizada (volta ao recarregar)','ok');}
+    }
+  }
+  closeEditCatModal();renderCatTree();updateCatPill();
 }
 
 // ═══════════════════════════════════════
