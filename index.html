@@ -68,7 +68,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .sum-item-val{font-weight:700;font-size:16px;letter-spacing:-0.3px}
 .c-g{color:var(--green)}.c-r{color:var(--red)}
 
-.act{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 14px 18px}
+.act{display:none}
 .btn-add{border:none;border-radius:var(--rs);padding:13px;font-weight:700;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .2s}
 .btn-add:active{transform:scale(.97)}
 .btn-r{background:var(--gdim);border:1px solid var(--gborder);color:var(--green)}
@@ -165,13 +165,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 /* U7: cat search clear button visibility */
 #catSearchInp:not(:placeholder-shown) ~ #catSearchClear{display:block!important}
 
+.action-bar-fixed{position:fixed;bottom:68px;left:50%;transform:translateX(-50%);width:100%;max-width:430px;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 14px;z-index:49;pointer-events:none}
+.action-bar-fixed .btn-add{pointer-events:all;box-shadow:0 4px 20px rgba(0,0,0,.4)}
 .bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(--surf);border-top:1px solid var(--border);display:flex;padding:9px 0 20px;z-index:50}
 .nav-btn{flex:1;background:none;border:none;color:var(--muted);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:19px;padding:5px 0;transition:all .2s;position:relative}
 .nav-btn.active{color:var(--green)}
 .nav-btn span{font-size:10px}
 .nav-btn.active::after{content:'';position:absolute;top:-9px;width:28px;height:2px;background:var(--green);border-radius:1px}
 
-.page{display:none;padding-bottom:90px}.page.active{display:block}
+.page{display:none;padding-bottom:145px}.page.active{display:block}
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
 
 /* LAUNCH SCREEN */
@@ -241,6 +243,23 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .btn-save:active{transform:scale(.98)}
 .btn-save:disabled{opacity:.5;cursor:not-allowed}
 
+/* U3: Calculadora customizada */
+.calc-panel{position:absolute;bottom:0;left:0;right:0;background:var(--surf);border-top:1px solid var(--border);z-index:220;display:none;flex-direction:column;user-select:none}
+.calc-panel.open{display:flex}
+.calc-display{padding:12px 18px 8px;background:var(--bg);border-bottom:1px solid var(--border)}
+.calc-expr{font-size:12px;color:var(--muted);min-height:16px;text-align:right;letter-spacing:.3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.calc-result{font-size:32px;font-weight:800;color:var(--text);text-align:right;letter-spacing:-1px;line-height:1.2;min-height:40px}
+.calc-result.red{color:var(--red)}.calc-result.green{color:var(--green)}
+.calc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border)}
+.calc-btn{background:var(--surf2);border:none;color:var(--text);font-size:20px;font-weight:600;padding:18px 0;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .1s;display:flex;align-items:center;justify-content:center}
+.calc-btn:active{background:var(--surf3)}
+.calc-btn.op{color:var(--blue);font-size:22px}
+.calc-btn.action{color:var(--muted2);font-size:16px;font-weight:500}
+.calc-btn.ok{background:var(--green);color:#0d0f14;font-weight:800;font-size:16px}
+.calc-btn.ok:active{background:#00c986}
+.calc-btn.eq{background:var(--blue);color:#fff;font-weight:800}
+.calc-btn.eq:active{background:#3a88ee}
+.calc-btn.clr{color:var(--red)}
 .subcat-picker{position:fixed;inset:0;background:var(--bg);z-index:300;display:none;flex-direction:column;max-width:430px;margin:0 auto;animation:fadeInUp .2s ease}
 .subcat-picker.open{display:flex}
 .scp-hdr{display:flex;align-items:center;gap:12px;padding:16px 16px 14px;border-bottom:1px solid var(--border);flex-shrink:0}
@@ -478,7 +497,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   </div>
 </div>
 
-<nav class="bnav">
+<div class="action-bar-fixed">
+    <button class="btn-add btn-r" onclick="openLaunch('receita',null)">+ Receita</button>
+    <button class="btn-add btn-d" onclick="openLaunch('despesa',null)">− Despesa</button>
+  </div>
+  <nav class="bnav">
   <button class="nav-btn active" id="nav-home" onclick="showPage('home')">🏠<span>Início</span></button>
   <button class="nav-btn" id="nav-charts" onclick="showPage('charts')">📊<span>Resumo</span></button>
   <button class="nav-btn" id="nav-cats" onclick="showPage('cats')">🏷️<span>Categorias</span></button>
@@ -559,7 +582,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="ls-amt-lbl" id="lsAmtLbl">Valor da despesa</div>
     <div class="ls-amt-row">
       <span class="ls-amt-cur">R$</span>
-      <input type="number" class="ls-amt-inp red" id="lsAmt" placeholder="0,00" min="0" step="0.01">
+      <div class="ls-amt-inp red" id="lsAmtDisplay" onclick="openCalc()" style="cursor:pointer;line-height:1.2;padding-top:4px;min-height:46px;display:flex;align-items:center">0,00</div>
+      <input type="hidden" id="lsAmt" value="">
     </div>
   </div>
   <div class="ls-body">
@@ -644,7 +668,40 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       </div>
     </div>
   </div>
-  <div class="ls-save-bar">
+  <!-- U3: Calculadora -->
+  <div class="calc-panel" id="calcPanel">
+    <div class="calc-display">
+      <div class="calc-expr" id="calcExpr"></div>
+      <div class="calc-result red" id="calcResult">0,00</div>
+    </div>
+    <div class="calc-grid">
+      <button class="calc-btn action clr" onclick="calcAction('C')">C</button>
+      <button class="calc-btn action" onclick="calcAction('back')">⌫</button>
+      <button class="calc-btn action" onclick="calcAction('%')">%</button>
+      <button class="calc-btn op" onclick="calcAction('÷')">÷</button>
+
+      <button class="calc-btn" onclick="calcAction('7')">7</button>
+      <button class="calc-btn" onclick="calcAction('8')">8</button>
+      <button class="calc-btn" onclick="calcAction('9')">9</button>
+      <button class="calc-btn op" onclick="calcAction('×')">×</button>
+
+      <button class="calc-btn" onclick="calcAction('4')">4</button>
+      <button class="calc-btn" onclick="calcAction('5')">5</button>
+      <button class="calc-btn" onclick="calcAction('6')">6</button>
+      <button class="calc-btn op" onclick="calcAction('−')">−</button>
+
+      <button class="calc-btn" onclick="calcAction('1')">1</button>
+      <button class="calc-btn" onclick="calcAction('2')">2</button>
+      <button class="calc-btn" onclick="calcAction('3')">3</button>
+      <button class="calc-btn op" onclick="calcAction('+')">+</button>
+
+      <button class="calc-btn" onclick="calcAction('0')" style="grid-column:span 1">0</button>
+      <button class="calc-btn" onclick="calcAction(',')">.</button>
+      <button class="calc-btn eq" onclick="calcAction('=')">＝</button>
+      <button class="calc-btn ok" onclick="calcAction('OK')">OK</button>
+    </div>
+  </div>
+    <div class="ls-save-bar">
     <button class="btn-save red" id="btnSave" onclick="submitLaunch()">Salvar</button>
   </div>
 </div>
@@ -1107,7 +1164,19 @@ function openLaunch(type,txId){
   document.getElementById('lsTypeLabel').textContent=isD?'Despesa':'Receita';
   document.getElementById('lsAmtLbl').textContent=isD?'Valor da despesa':'Valor da receita';
   document.getElementById('lsAmt').className='ls-amt-inp '+(isD?'red':'green');
-  document.getElementById('lsAmt').value=tx?tx.amount:'';
+  document.getElementById('lsAmtDisplay').className='ls-amt-inp '+(isD?'red':'green');
+  document.getElementById('calcResult').className='calc-result '+(isD?'red':'green');
+  // Pre-fill calc display
+  if(tx && tx.amount){
+    const fmtd = tx.amount.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+    document.getElementById('lsAmtDisplay').textContent = fmtd;
+    document.getElementById('lsAmt').value = tx.amount;
+    calcExpr = String(tx.amount).replace('.',',');
+  } else {
+    document.getElementById('lsAmtDisplay').textContent = '0,00';
+    document.getElementById('lsAmt').value = '';
+    calcExpr = '';
+  }
   document.getElementById('btnSave').className='btn-save '+(isD?'red':'grn');
   document.getElementById('btnSave').textContent=txId?'Salvar alterações':'Salvar';
   document.getElementById('rowFixo').style.display=isD?'flex':'none';
@@ -1151,9 +1220,121 @@ function openLaunch(type,txId){
   selectLsUser(lsUser);
   document.getElementById('catGrid') && (document.getElementById('catGrid').innerHTML='');
   document.getElementById('launchScreen').classList.add('open');
-  setTimeout(()=>document.getElementById('lsAmt').focus(),300);
+  // Reset and open calculator
+  calcExpr = '';
+  calcHasResult = false;
+  setTimeout(()=>openCalc(),300);
 }
-function closeLaunch(){document.getElementById('launchScreen').classList.remove('open');editingTxId=null;}
+// ═══════════════════════════════════════
+//  U3: CALCULADORA
+// ═══════════════════════════════════════
+let calcExpr = '';
+let calcHasResult = false;
+
+function openCalc(){
+  const panel = document.getElementById('calcPanel');
+  panel.classList.add('open');
+  updateCalcDisplay();
+}
+function closeCalc(){
+  document.getElementById('calcPanel').classList.remove('open');
+}
+function calcEval(expr){
+  try{
+    // Replace display operators with JS operators
+    let e = expr.replace(/,/g,'.').replace(/÷/g,'/').replace(/×/g,'*').replace(/−/g,'-');
+    // Basic safety check — only allow numbers and operators
+    if(!/^[0-9+\-*/%.() ]+$/.test(e)) return null;
+    // eslint-disable-next-line no-eval
+    let r = Function('"use strict";return ('+e+')')();
+    if(!isFinite(r)) return null;
+    return parseFloat(r.toFixed(10));
+  }catch(e){return null;}
+}
+function updateCalcDisplay(){
+  const exprEl = document.getElementById('calcExpr');
+  const resultEl = document.getElementById('calcResult');
+  const isD = lsType==='despesa';
+  resultEl.className = 'calc-result ' + (isD?'red':'green');
+
+  if(!calcExpr){
+    exprEl.textContent = '';
+    resultEl.textContent = '0,00';
+    // Update amount display
+    document.getElementById('lsAmtDisplay').textContent = '0,00';
+    document.getElementById('lsAmt').value = '';
+    return;
+  }
+  exprEl.textContent = calcExpr;
+  const val = calcEval(calcExpr);
+  if(val !== null && val >= 0){
+    const formatted = val.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+    resultEl.textContent = formatted;
+    // Keep hidden input updated with raw number
+    document.getElementById('lsAmt').value = val;
+    document.getElementById('lsAmtDisplay').textContent = formatted;
+  } else {
+    resultEl.textContent = calcExpr;
+    document.getElementById('lsAmtDisplay').textContent = calcExpr;
+  }
+}
+function calcAction(btn){
+  const ops = ['+','−','×','÷'];
+  const lastChar = calcExpr.slice(-1);
+  if(btn==='C'){
+    calcExpr='';
+    calcHasResult=false;
+  } else if(btn==='back'){
+    calcExpr=calcExpr.slice(0,-1);
+    calcHasResult=false;
+  } else if(btn==='%'){
+    // Apply % to current number: divide by 100
+    const val = calcEval(calcExpr);
+    if(val!==null) calcExpr = String(val/100).replace('.',',');
+    calcHasResult=true;
+  } else if(btn==='='){
+    const val = calcEval(calcExpr);
+    if(val!==null && val>=0){
+      calcExpr = String(val).replace('.',',');
+      calcHasResult=true;
+    }
+  } else if(btn==='OK'){
+    // Resolve expression and confirm
+    const val = calcEval(calcExpr);
+    const final = val!==null && val>0 ? val : calcEval(calcExpr.replace(/[+\-×÷].*$/,''));
+    if(final && final>0){
+      const formatted = final.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+      document.getElementById('lsAmtDisplay').textContent = formatted;
+      document.getElementById('lsAmt').value = final;
+      calcExpr = String(final).replace('.',',');
+      calcHasResult=true;
+    }
+    closeCalc();
+    return;
+  } else if(ops.includes(btn)){
+    // If last char is also an op, replace it
+    if(ops.includes(lastChar)) calcExpr = calcExpr.slice(0,-1);
+    // If we just confirmed a result, continue from it
+    calcExpr += btn;
+    calcHasResult=false;
+  } else if(btn===','){
+    // Decimal: only add if no comma in current number segment
+    const segments = calcExpr.split(/[+\-×÷]/);
+    const last = segments[segments.length-1];
+    if(!last.includes(',')) calcExpr += ',';
+  } else {
+    // Digit
+    if(calcHasResult && !ops.includes(lastChar)){
+      // Start fresh only if not continuing with operator
+      calcExpr='';
+      calcHasResult=false;
+    }
+    calcExpr += btn;
+  }
+  updateCalcDisplay();
+}
+
+function closeLaunch(){document.getElementById('launchScreen').classList.remove('open');closeCalc();calcExpr='';editingTxId=null;}
 function toggleLaunchType(){if(!editingTxId)openLaunch(lsType==='despesa'?'receita':'despesa',null);}
 
 function setDate(which){
