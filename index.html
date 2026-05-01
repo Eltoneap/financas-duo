@@ -103,8 +103,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .tx-badge{font-size:9px;padding:2px 5px;border-radius:4px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
 .b-fix{background:var(--ydim);color:var(--yellow);border:1px solid var(--yborder)}
 .b-rep{background:var(--bdim);color:var(--blue);border:1px solid var(--bborder)}
-.b-npag{background:var(--surf3);color:var(--muted2);border:1px solid var(--border)}
+.b-npag{background:var(--rdim);color:var(--red);border:1px solid var(--rborder)}
 .tx-udot{width:13px;height:13px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:6px;font-weight:800;flex-shrink:0}
+.cat-suggest-chip{display:flex;align-items:center;gap:8px;margin-top:7px;background:var(--gdim);border:1px solid var(--gborder);border-radius:8px;padding:6px 10px;cursor:pointer;animation:chipIn .18s ease}
+@keyframes chipIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.chip-txt{flex:1;font-size:11px;color:var(--muted2)}
+.chip-txt strong{color:var(--text);font-weight:600}
+.chip-apply{font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.5px;background:none;border:none;padding:0;cursor:pointer;white-space:nowrap;font-family:inherit}
 .d-e{background:linear-gradient(135deg,#00e5a0,#00b8ff);color:#0d0f14}
 .d-m{background:linear-gradient(135deg,#ff4e6a,#ff9f4e);color:#0d0f14}
 .d-c{background:linear-gradient(135deg,#6b7a99,#8892b0);color:#0d0f14}
@@ -605,10 +610,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <input type="date" class="fi" id="dpCustom" onchange="onCustomDate()" style="display:none;margin-top:6px;width:100%;font-family:'DM Sans',sans-serif">
       </div>
     </div>
-    <div class="ls-row">
-      <span class="ls-row-ico">✏️</span>
-      <div class="ls-row-content">
-        <input type="text" class="ls-row-input" id="lsDesc" placeholder="Descrição">
+    <div class="ls-row" style="align-items:flex-start">
+      <span class="ls-row-ico" style="margin-top:3px">✏️</span>
+      <div class="ls-row-content" style="flex-direction:column;align-items:stretch;gap:0">
+        <input type="text" class="ls-row-input" id="lsDesc" placeholder="Descrição" oninput="onDescInput()">
+        <div class="cat-suggest-chip" id="catSuggestChip" style="display:none" onclick="applyCatSuggestion()">
+          <span style="font-size:12px;flex-shrink:0">🏷️</span>
+          <span class="chip-txt" id="catSuggestTxt"><strong></strong></span>
+          <button class="chip-apply" onclick="event.stopPropagation();applyCatSuggestion()">Aplicar</button>
+        </div>
       </div>
     </div>
     <div class="ls-row" onclick="openSubcatPicker()" style="cursor:pointer">
@@ -1180,7 +1190,7 @@ function openLaunch(type,txId){
   document.getElementById('btnSave').className='btn-save '+(isD?'red':'grn');
   document.getElementById('btnSave').textContent=txId?'Salvar alterações':'Salvar';
   document.getElementById('rowFixo').style.display=isD?'flex':'none';
-  document.getElementById('lsDesc').value=tx?tx.desc:'';
+  document.getElementById('lsDesc').value=tx?tx.desc:'';hideCatSuggest();
   document.getElementById('lsObs').value=tx?tx.obs||'':'';
   document.getElementById('tgPago').checked=tx?tx.pago:true;
   document.getElementById('tgFixo').checked=tx?tx.fixo:false;
@@ -1334,7 +1344,7 @@ function calcAction(btn){
   updateCalcDisplay();
 }
 
-function closeLaunch(){document.getElementById('launchScreen').classList.remove('open');closeCalc();calcExpr='';editingTxId=null;}
+function closeLaunch(){document.getElementById('launchScreen').classList.remove('open');closeCalc();calcExpr='';editingTxId=null;hideCatSuggest();}
 function toggleLaunchType(){if(!editingTxId)openLaunch(lsType==='despesa'?'receita':'despesa',null);}
 
 function setDate(which){
@@ -1377,6 +1387,39 @@ function updateCatPill(){
   pill.innerHTML=`<span class="cat-pill-ico">${sub?sub.icon:cat.icon}</span><span class="cat-pill-name">${cat.name}${sub?' › '+sub.name:''}</span>`;
 }
 
+// U4 — sugestão automática de categoria ao digitar descrição
+let _suggestCatId=null,_suggestSubId=null;
+function onDescInput(){
+  const val=document.getElementById('lsDesc').value.trim();
+  const chip=document.getElementById('catSuggestChip');
+  // Se já tem categoria selecionada manualmente, não exibir
+  if(lsSelCatId){chip.style.display='none';return;}
+  if(!val){chip.style.display='none';_suggestCatId=null;_suggestSubId=null;return;}
+  const m=matchPattern(val);
+  if(!m){chip.style.display='none';_suggestCatId=null;_suggestSubId=null;return;}
+  const cat=findCat(lsType,m.catId)||findCat(lsType==='despesa'?'receita':'despesa',m.catId);
+  if(!cat||cat.name==='Sem categoria'){chip.style.display='none';return;}
+  const sub=m.subId?findSub(cat,m.subId):null;
+  _suggestCatId=m.catId;_suggestSubId=m.subId||null;
+  const label=cat.name+(sub?' › '+sub.name:'');
+  document.getElementById('catSuggestTxt').innerHTML=`<strong>${label}</strong>`;
+  chip.style.display='none';
+  // Force animation restart
+  void chip.offsetWidth;
+  chip.style.display='flex';
+}
+function applyCatSuggestion(){
+  if(!_suggestCatId)return;
+  lsSelCatId=_suggestCatId;lsSelSubId=_suggestSubId;
+  updateCatPill();
+  document.getElementById('catSuggestChip').style.display='none';
+  _suggestCatId=null;_suggestSubId=null;
+}
+function hideCatSuggest(){
+  document.getElementById('catSuggestChip').style.display='none';
+  _suggestCatId=null;_suggestSubId=null;
+}
+
 // SUBCAT PICKER
 function openSubcatPicker(){
   const cats=getCats(lsType);
@@ -1404,7 +1447,7 @@ function selectCatOnly(id){
     if(item){item.catId=id;item.subId=null;item.aiSuggestCat=null;item.aiSuggestSub=null;}
     impPickingForId=null;closeSubcatPicker();renderImportResults();return;
   }
-  lsSelCatId=id;lsSelSubId=null;updateCatPill();closeSubcatPicker();
+  lsSelCatId=id;lsSelSubId=null;updateCatPill();closeSubcatPicker();hideCatSuggest();
 }
 function selectCatSub(cId,sId){
   if(impPickingForId){
@@ -1412,7 +1455,7 @@ function selectCatSub(cId,sId){
     if(item){item.catId=cId;item.subId=sId;item.aiSuggestCat=null;item.aiSuggestSub=null;}
     impPickingForId=null;closeSubcatPicker();renderImportResults();return;
   }
-  lsSelCatId=cId;lsSelSubId=sId;updateCatPill();closeSubcatPicker();
+  lsSelCatId=cId;lsSelSubId=sId;updateCatPill();closeSubcatPicker();hideCatSuggest();
 }
 
 // ═══════════════════════════════════════
