@@ -123,6 +123,28 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .empty-st p{font-size:13px;line-height:1.6}
 
 .ch-sec{padding:0 14px 20px}
+
+/* A1: Balanço do período */
+.period-card{background:var(--surf);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:12px}
+.period-ttl{font-weight:700;font-size:12px;margin-bottom:4px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.period-sub{font-size:10px;color:var(--muted);margin-bottom:12px;opacity:.7}
+.period-dates{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.period-date-wrap{display:flex;flex-direction:column;gap:4px}
+.period-date-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px}
+.period-date-inp{background:var(--surf2);border:1px solid var(--border);border-radius:var(--rs);padding:8px 10px;font-size:13px;color:var(--text);font-family:'DM Sans',sans-serif;width:100%;outline:none;-webkit-appearance:none;transition:border-color .2s}
+.period-date-inp:focus{border-color:var(--blue)}
+.period-totals{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.period-item{background:var(--surf2);border-radius:var(--rs);padding:10px;text-align:center}
+.period-item-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px}
+.period-item-val{font-weight:800;font-size:13px;letter-spacing:-0.3px;line-height:1.2}
+
+/* A3: Gráfico de evolução */
+.evo-card{background:var(--surf);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:12px}
+.evo-ttl{font-weight:700;font-size:12px;margin-bottom:14px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.evo-legend{display:flex;gap:14px;margin-bottom:12px}
+.evo-leg-item{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted2)}
+.evo-leg-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.evo-chart{width:100%;overflow:hidden}
 .ch-card{background:var(--surf);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:12px}
 .ch-ttl{font-weight:700;font-size:12px;margin-bottom:14px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
 .bar-row{display:flex;align-items:center;gap:9px;margin-bottom:9px}
@@ -479,6 +501,46 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <button onclick="openAnalysis()" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;border:none;border-radius:var(--rs);background:linear-gradient(135deg,rgba(78,158,255,.15),rgba(0,229,160,.15));border:1px solid rgba(78,158,255,.3);color:var(--blue);font-weight:700;font-size:14px;cursor:pointer;margin-bottom:14px;transition:all .2s" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">
       🤖 Analisar meus gastos com IA
     </button>
+    <!-- A1: Balanço do período -->
+    <div class="period-card">
+      <div class="period-ttl">📅 Balanço do período</div>
+      <div class="period-sub">Acumulado no intervalo selecionado — diferente do saldo mensal da tela Início</div>
+      <div class="period-dates">
+        <div class="period-date-wrap">
+          <label class="period-date-lbl">De</label>
+          <input type="date" class="period-date-inp" id="periodStart" oninput="renderPeriodBalance()">
+        </div>
+        <div class="period-date-wrap">
+          <label class="period-date-lbl">Até</label>
+          <input type="date" class="period-date-inp" id="periodEnd" oninput="renderPeriodBalance()">
+        </div>
+      </div>
+      <div class="period-totals">
+        <div class="period-item">
+          <div class="period-item-lbl">Receitas</div>
+          <div class="period-item-val c-g" id="periodInc">R$ 0,00</div>
+        </div>
+        <div class="period-item">
+          <div class="period-item-lbl">Despesas</div>
+          <div class="period-item-val c-r" id="periodExp">R$ 0,00</div>
+        </div>
+        <div class="period-item">
+          <div class="period-item-lbl">Saldo</div>
+          <div class="period-item-val" id="periodBal">R$ 0,00</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- A3: Gráfico de evolução mensal -->
+    <div class="evo-card">
+      <div class="evo-ttl">📈 Evolução — últimos 6 meses</div>
+      <div class="evo-legend">
+        <div class="evo-leg-item"><div class="evo-leg-dot" style="background:var(--green)"></div>Receita</div>
+        <div class="evo-leg-item"><div class="evo-leg-dot" style="background:var(--red)"></div>Despesa</div>
+      </div>
+      <div class="evo-chart" id="evoChart"></div>
+    </div>
+
     <div class="ch-card"><div class="ch-ttl">Despesas por categoria</div><div id="catBars"></div></div>
     <div class="ch-card"><div class="ch-ttl">Por usuário</div><div id="userBars"></div></div>
   </div>
@@ -1051,7 +1113,7 @@ function filterTxs(list){
 // ═══════════════════════════════════════
 function render(){
   document.getElementById('mthLbl').textContent=MONTHS[curMonth]+' '+curYear;
-  renderSummary();renderTxList();renderCharts();renderCatTree();
+  renderSummary();renderTxList();renderCharts();renderCatTree();renderPeriodBalance();renderEvolutionChart();
 }
 function renderSummary(){
   const t=getMonthTxs();
@@ -1123,6 +1185,110 @@ function renderCharts(){
   if(!t.length){uEl.innerHTML='<div class="empty-st" style="padding:20px"><p>Adicione lançamentos para ver</p></div>';}
   else{uEl.innerHTML=`<div style="margin-bottom:12px"><div style="font-size:10px;color:var(--muted);margin-bottom:7px;text-transform:uppercase;letter-spacing:1px">📉 Despesas</div><div class="bar-row"><div class="bar-lbl"><div class="av av-e" style="width:18px;height:18px;font-size:8px;flex-shrink:0">E</div> Elton</div><div class="bar-track"><div class="bar-fill" style="width:${eD/mx*100}%;background:var(--green)"></div></div><div class="bar-val">${fmt(eD)}</div></div><div class="bar-row"><div class="bar-lbl"><div class="av av-c" style="width:18px;height:18px;font-size:8px;flex-shrink:0">C</div> Cláudia</div><div class="bar-track"><div class="bar-fill" style="width:${cD/mx*100}%;background:var(--muted)"></div></div><div class="bar-val">${fmt(cD)}</div></div><div class="bar-row"><div class="bar-lbl"><div class="av av-s" style="width:18px;height:18px;font-size:8px;flex-shrink:0">S</div> Saulo</div><div class="bar-track"><div class="bar-fill" style="width:${sD/mx*100}%;background:var(--blue)"></div></div><div class="bar-val">${fmt(sD)}</div></div></div><div><div style="font-size:10px;color:var(--muted);margin-bottom:7px;text-transform:uppercase;letter-spacing:1px">📈 Receitas</div><div class="bar-row"><div class="bar-lbl"><div class="av av-e" style="width:18px;height:18px;font-size:8px;flex-shrink:0">E</div> Elton</div><div class="bar-track"><div class="bar-fill" style="width:${eR/mx*100}%;background:var(--green)"></div></div><div class="bar-val" style="color:var(--green)">${fmt(eR)}</div></div><div class="bar-row"><div class="bar-lbl"><div class="av av-c" style="width:18px;height:18px;font-size:8px;flex-shrink:0">C</div> Cláudia</div><div class="bar-track"><div class="bar-fill" style="width:${cR/mx*100}%;background:var(--muted)"></div></div><div class="bar-val" style="color:var(--muted2)">${fmt(cR)}</div></div><div class="bar-row"><div class="bar-lbl"><div class="av av-s" style="width:18px;height:18px;font-size:8px;flex-shrink:0">S</div> Saulo</div><div class="bar-track"><div class="bar-fill" style="width:${sR/mx*100}%;background:var(--blue)"></div></div><div class="bar-val" style="color:var(--blue)">${fmt(sR)}</div></div></div>`;}
 }
+// ═══════════════════════════════════════
+//  A1: BALANÇO DO PERÍODO
+// ═══════════════════════════════════════
+function initPeriodDates(){
+  const end=new Date();
+  const start=new Date();
+  start.setMonth(start.getMonth()-11);
+  start.setDate(1);
+  const ps=document.getElementById('periodStart');
+  const pe=document.getElementById('periodEnd');
+  if(ps&&!ps.value)ps.value=localDate(start);
+  if(pe&&!pe.value)pe.value=localDate(end);
+}
+function renderPeriodBalance(){
+  initPeriodDates();
+  const ps=document.getElementById('periodStart');
+  const pe=document.getElementById('periodEnd');
+  if(!ps||!pe)return;
+  const start=ps.value,end=pe.value;
+  if(!start||!end)return;
+  const filtered=txs.filter(t=>t.date>=start&&t.date<=end);
+  const inc=filtered.filter(x=>x.type==='receita').reduce((a,x)=>a+x.amount,0);
+  const exp=filtered.filter(x=>x.type==='despesa').reduce((a,x)=>a+x.amount,0);
+  const bal=inc-exp;
+  const piEl=document.getElementById('periodInc');
+  const peEl=document.getElementById('periodExp');
+  const pbEl=document.getElementById('periodBal');
+  if(piEl)piEl.textContent=fmt(inc);
+  if(peEl)peEl.textContent=fmt(exp);
+  if(pbEl){pbEl.textContent=fmt(bal);pbEl.className='period-item-val '+(bal>=0?'c-g':'c-r');}
+}
+
+// ═══════════════════════════════════════
+//  A3: GRÁFICO DE EVOLUÇÃO MENSAL
+// ═══════════════════════════════════════
+function renderEvolutionChart(){
+  const el=document.getElementById('evoChart');
+  if(!el)return;
+
+  // Montar lista dos últimos 6 meses (do mais antigo ao mais recente)
+  const months=[];
+  const now=new Date();
+  for(let i=5;i>=0;i--){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    months.push({year:d.getFullYear(),month:d.getMonth(),lbl:['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][d.getMonth()]});
+  }
+
+  // Calcular receitas e despesas por mês
+  const data=months.map(m=>{
+    const mt=txs.filter(t=>{const d=new Date(t.date+'T12:00:00');return d.getMonth()===m.month&&d.getFullYear()===m.year;});
+    const inc=mt.filter(x=>x.type==='receita').reduce((a,x)=>a+x.amount,0);
+    const exp=mt.filter(x=>x.type==='despesa').reduce((a,x)=>a+x.amount,0);
+    return{...m,inc,exp,bal:inc-exp};
+  });
+
+  const maxVal=Math.max(...data.map(d=>Math.max(d.inc,d.exp)),1);
+
+  // Dimensões
+  const W=el.clientWidth||340;
+  const H=160; // altura da área de barras
+  const PAD_L=0,PAD_R=0,PAD_TOP=8,PAD_BOT=38; // bottom para labels+saldo
+  const cols=months.length;
+  const colW=(W-PAD_L-PAD_R)/cols;
+  const BAR_W=Math.min(colW*0.28,18);
+  const GAP=3;
+  const chartH=H-PAD_TOP-PAD_BOT;
+
+  let bars='',labels='',saldos='',lines='';
+
+  data.forEach((d,i)=>{
+    const cx=PAD_L+i*colW+colW/2;
+    const hInc=d.inc>0?(d.inc/maxVal)*chartH:0;
+    const hExp=d.exp>0?(d.exp/maxVal)*chartH:0;
+    const x1=cx-GAP/2-BAR_W; // receita à esquerda
+    const x2=cx+GAP/2;       // despesa à direita
+    const yInc=PAD_TOP+chartH-hInc;
+    const yExp=PAD_TOP+chartH-hExp;
+
+    // Barras
+    if(d.inc>0)bars+=`<rect x="${x1.toFixed(1)}" y="${yInc.toFixed(1)}" width="${BAR_W}" height="${hInc.toFixed(1)}" rx="3" fill="#00e5a0" opacity=".9"/>`;
+    if(d.exp>0)bars+=`<rect x="${x2.toFixed(1)}" y="${yExp.toFixed(1)}" width="${BAR_W}" height="${hExp.toFixed(1)}" rx="3" fill="#ff4e6a" opacity=".9"/>`;
+
+    // Label do mês
+    labels+=`<text x="${cx.toFixed(1)}" y="${(PAD_TOP+chartH+14).toFixed(1)}" text-anchor="middle" font-size="10" fill="#6b7a99" font-family="DM Sans,sans-serif">${d.lbl}</text>`;
+
+    // Saldo abaixo do label
+    const balClr=d.bal>=0?'#00e5a0':'#ff4e6a';
+    const balTxt=d.bal===0?'–':formatK(d.bal);
+    saldos+=`<text x="${cx.toFixed(1)}" y="${(PAD_TOP+chartH+27).toFixed(1)}" text-anchor="middle" font-size="9" fill="${balClr}" font-weight="700" font-family="DM Sans,sans-serif">${balTxt}</text>`;
+  });
+
+  // Linha de base
+  lines+=`<line x1="${PAD_L}" y1="${PAD_TOP+chartH}" x2="${W-PAD_R}" y2="${PAD_TOP+chartH}" stroke="#2c3450" stroke-width="1"/>`;
+
+  el.innerHTML=`<svg viewBox="0 0 ${W} ${H+PAD_BOT-PAD_TOP+PAD_TOP}" width="100%" xmlns="http://www.w3.org/2000/svg">${lines}${bars}${labels}${saldos}</svg>`;
+}
+
+function formatK(v){
+  const abs=Math.abs(v);
+  const sign=v<0?'-':'+';
+  if(abs>=1000)return sign+'R$'+(abs/1000).toFixed(1).replace('.',',')+'k';
+  return sign+'R$'+abs.toFixed(0);
+}
+
 function renderCatTree(){
   const q=(document.getElementById('catSearchInp')||{}).value||'';  const qlow=q.toLowerCase().trim();
   let cats=getCats(catTab);
@@ -1926,7 +2092,7 @@ function showPage(name){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
   document.getElementById('nav-'+name).classList.add('active');
-  if(name==='charts')renderCharts();
+  if(name==='charts'){renderCharts();renderPeriodBalance();renderEvolutionChart();}
   if(name==='cats')renderCatTree();
 }
 function toggleUser(){
