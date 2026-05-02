@@ -879,8 +879,9 @@ let nctSelEmoji='📦',nscSelEmoji='📌';
 //  HELPERS
 // ═══════════════════════════════════════
 const fmt=v=>'R$ '+v.toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.');
-function today(){return new Date().toISOString().split('T')[0];}
-function yesterday(){const d=new Date();d.setDate(d.getDate()-1);return d.toISOString().split('T')[0];}
+function localDate(d=new Date()){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');return `${y}-${m}-${dd}`;}
+function today(){return localDate();}
+function yesterday(){const d=new Date();d.setDate(d.getDate()-1);return localDate(d);}
 function getSelDate(){if(lsQuickDate==='hoje')return today();if(lsQuickDate==='ontem')return yesterday();return lsCustomDate||today();}
 function getCats(t){return[...(t==='despesa'?DEF_D:DEF_R),...(t==='despesa'?custD:custR)];}
 function findCat(type,catId){
@@ -1465,7 +1466,7 @@ function generateRecurringDates(startDate,unit,count){
   const dates=[];
   const d=new Date(startDate+'T12:00:00');
   for(let i=0;i<count;i++){
-    dates.push(d.toISOString().split('T')[0]);
+    dates.push(localDate(d));
     if(unit==='semanal')d.setDate(d.getDate()+7);
     else if(unit==='mensal')d.setMonth(d.getMonth()+1);
     else if(unit==='anual')d.setFullYear(d.getFullYear()+1);
@@ -2520,7 +2521,7 @@ async function confirmAllImport(){
           const d = new Date(startDate+'T12:00:00');
           const offset = (item.installmentCurrent||1) - 1;
           d.setMonth(d.getMonth() - offset);
-          return d.toISOString().split('T')[0];
+          return localDate(d);
         })();
         const dates = generateRecurringDates(firstDate, 'mensal', item.installmentTotal);
         dates.forEach((date, i) => {
