@@ -69,13 +69,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .c-g{color:var(--green)}.c-r{color:var(--red)}
 
 .act{display:none}
-.btn-add{border:none;border-radius:var(--rs);padding:13px;font-weight:700;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .2s}
+.btn-add{border:none;border-radius:var(--rs);padding:10px 13px;font-weight:700;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .2s}
 .btn-add:active{transform:scale(.97)}
 .btn-r{background:var(--gdim);border:1px solid var(--gborder);color:var(--green)}
 .btn-d{background:var(--rdim);border:1px solid var(--rborder);color:var(--red)}
 
 .sec-lbl{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);padding:0 18px;margin-bottom:8px}
-.search-bar{display:flex;align-items:center;gap:8px;margin:0 14px 12px;background:var(--surf2);border:1px solid var(--border);border-radius:var(--rs);padding:9px 12px;transition:border-color .2s}
+.search-sticky{position:sticky;top:56px;z-index:15;background:var(--bg);padding:6px 0 2px}
+.search-bar{display:flex;align-items:center;gap:8px;margin:0 14px 8px;background:var(--surf2);border:1px solid var(--border);border-radius:var(--rs);padding:9px 12px;transition:border-color .2s}
 .search-bar:focus-within{border-color:var(--blue)}
 .search-ico{font-size:15px;color:var(--muted);flex-shrink:0}
 .search-inp{background:none;border:none;outline:none;font-size:13px;color:var(--text);flex:1;font-family:'DM Sans',sans-serif}
@@ -192,7 +193,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 /* U7: cat search clear button visibility */
 #catSearchInp:not(:placeholder-shown) ~ #catSearchClear{display:block!important}
 
-.action-bar-fixed{position:fixed;bottom:68px;left:50%;transform:translateX(-50%);width:100%;max-width:430px;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 14px;z-index:49;pointer-events:none}
+.action-bar-fixed{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);width:100%;max-width:430px;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 14px;z-index:49;pointer-events:none}
 .action-bar-fixed .btn-add{pointer-events:all;box-shadow:0 4px 20px rgba(0,0,0,.4)}
 .bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(--surf);border-top:1px solid var(--border);display:flex;padding:9px 0 20px;z-index:50}
 .nav-btn{flex:1;background:none;border:none;color:var(--muted);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:19px;padding:5px 0;transition:all .2s;position:relative}
@@ -250,6 +251,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .toggle-track::before{content:'';position:absolute;height:19px;width:19px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform .2s}
 .toggle-sw input:checked+.toggle-track{background:var(--red)}
 .toggle-sw input:checked+.toggle-track::before{transform:translateX(19px)}
+.toggle-grn input:checked+.toggle-track{background:var(--green)!important}
 .repeat-opts{background:var(--surf2);border-bottom:1px solid rgba(255,255,255,.05);padding:10px 18px 12px 56px;display:none}
 .repeat-opts.show{display:block}
 .rep-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px}
@@ -273,20 +275,26 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 /* U3: Calculadora customizada */
 .calc-panel{position:absolute;bottom:0;left:0;right:0;background:var(--surf);border-top:1px solid var(--border);z-index:220;display:none;flex-direction:column;user-select:none}
 .calc-panel.open{display:flex}
-.calc-display{padding:12px 18px 8px;background:var(--bg);border-bottom:1px solid var(--border)}
-.calc-expr{font-size:12px;color:var(--muted);min-height:16px;text-align:right;letter-spacing:.3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.calc-result{font-size:32px;font-weight:800;color:var(--text);text-align:right;letter-spacing:-1px;line-height:1.2;min-height:40px}
+.calc-display{padding:14px 16px 10px;background:var(--bg);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.calc-display-prefix{font-size:18px;font-weight:700;color:var(--muted);flex-shrink:0}
+.calc-result{font-size:32px;font-weight:800;color:var(--text);letter-spacing:-1px;line-height:1.1;flex:1;text-align:right;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .calc-result.red{color:var(--red)}.calc-result.green{color:var(--green)}
+.calc-back{background:none;border:none;color:var(--muted2);font-size:22px;cursor:pointer;padding:4px 2px;flex-shrink:0;font-family:'DM Sans',sans-serif}
+.calc-back:active{color:var(--red)}
+.calc-expr{font-size:11px;color:var(--muted);text-align:right;padding:0 16px 6px;background:var(--bg);min-height:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .calc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border)}
-.calc-btn{background:var(--surf2);border:none;color:var(--text);font-size:20px;font-weight:600;padding:18px 0;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .1s;display:flex;align-items:center;justify-content:center}
+.calc-btn{background:var(--surf2);border:none;color:var(--text);font-size:22px;font-weight:600;padding:17px 0;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .1s;display:flex;align-items:center;justify-content:center}
 .calc-btn:active{background:var(--surf3)}
-.calc-btn.op{color:var(--blue);font-size:22px}
-.calc-btn.action{color:var(--muted2);font-size:16px;font-weight:500}
-.calc-btn.ok{background:var(--green);color:#0d0f14;font-weight:800;font-size:16px}
-.calc-btn.ok:active{background:#00c986}
-.calc-btn.eq{background:var(--blue);color:#fff;font-weight:800}
+.calc-btn.op{color:var(--blue);font-size:22px;background:var(--bdim)}
+.calc-btn.op:active{background:var(--surf3)}
+.calc-btn.action{color:var(--muted2);font-size:15px;font-weight:500;background:var(--surf3)}
+.calc-btn.eq{background:var(--blue);color:#fff;font-weight:800;font-size:22px}
 .calc-btn.eq:active{background:#3a88ee}
-.calc-btn.clr{color:var(--red)}
+.calc-btn-bar{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border)}
+.calc-cancel{background:var(--surf3);border:none;color:var(--muted2);font-size:15px;font-weight:600;padding:16px 0;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .1s}
+.calc-cancel:active{background:var(--surf2)}
+.calc-ok{background:var(--green);border:none;color:#0d0f14;font-size:15px;font-weight:800;padding:16px 0;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .1s}
+.calc-ok:active{background:#00c986}
 .subcat-picker{position:fixed;inset:0;background:var(--bg);z-index:300;display:none;flex-direction:column;max-width:430px;margin:0 auto;animation:fadeInUp .2s ease}
 .subcat-picker.open{display:flex}
 .scp-hdr{display:flex;align-items:center;gap:12px;padding:16px 16px 14px;border-bottom:1px solid var(--border);flex-shrink:0}
@@ -476,7 +484,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <button class="btn-add btn-d" onclick="openLaunch('despesa',null)">− Despesa</button>
   </div>
   <div class="sec-lbl">Lançamentos</div>
-  <!-- SEARCH BAR -->
+  <!-- SEARCH BAR + FILTERS sticky -->
+  <div class="search-sticky">
   <div class="search-bar">
     <span class="search-ico">🔍</span>
     <input type="text" class="search-inp" id="searchInp" placeholder="Buscar por descrição..." oninput="applyFilters()">
@@ -491,6 +500,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <button class="f-pill" id="fNPago" onclick="setFilter('npago')">⏳ Não pagos</button>
     <button class="f-pill" id="fFixo" onclick="setFilter('fixo')">📌 Fixos</button>
     <button class="f-pill" id="fRepete" onclick="setFilter('repete')">🔁 Repete</button>
+  </div>
   </div>
   <div class="tx-list" id="txList"></div>
 </div>
@@ -743,19 +753,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <!-- U3: Calculadora -->
   <div class="calc-panel" id="calcPanel">
     <div class="calc-display">
-      <div class="calc-expr" id="calcExpr"></div>
+      <span class="calc-display-prefix">R$</span>
       <div class="calc-result red" id="calcResult">0,00</div>
+      <button class="calc-back" onclick="calcAction('back')">⌫</button>
     </div>
+    <div class="calc-expr" id="calcExpr"></div>
     <div class="calc-grid">
-      <button class="calc-btn action clr" onclick="calcAction('C')">C</button>
-      <button class="calc-btn action" onclick="calcAction('back')">⌫</button>
-      <button class="calc-btn action" onclick="calcAction('%')">%</button>
-      <button class="calc-btn op" onclick="calcAction('÷')">÷</button>
-
       <button class="calc-btn" onclick="calcAction('7')">7</button>
       <button class="calc-btn" onclick="calcAction('8')">8</button>
       <button class="calc-btn" onclick="calcAction('9')">9</button>
-      <button class="calc-btn op" onclick="calcAction('×')">×</button>
+      <button class="calc-btn op" onclick="calcAction('+')">+</button>
 
       <button class="calc-btn" onclick="calcAction('4')">4</button>
       <button class="calc-btn" onclick="calcAction('5')">5</button>
@@ -765,12 +772,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <button class="calc-btn" onclick="calcAction('1')">1</button>
       <button class="calc-btn" onclick="calcAction('2')">2</button>
       <button class="calc-btn" onclick="calcAction('3')">3</button>
-      <button class="calc-btn op" onclick="calcAction('+')">+</button>
+      <button class="calc-btn op" onclick="calcAction('×')">×</button>
 
-      <button class="calc-btn" onclick="calcAction('0')" style="grid-column:span 1">0</button>
-      <button class="calc-btn" onclick="calcAction(',')">.</button>
+      <button class="calc-btn action" onclick="calcAction(',')">.</button>
+      <button class="calc-btn" onclick="calcAction('0')">0</button>
       <button class="calc-btn eq" onclick="calcAction('=')">＝</button>
-      <button class="calc-btn ok" onclick="calcAction('OK')">OK</button>
+      <button class="calc-btn op" onclick="calcAction('÷')">÷</button>
+    </div>
+    <div class="calc-btn-bar">
+      <button class="calc-cancel" onclick="calcAction('CANCEL')">Cancelar</button>
+      <button class="calc-ok" onclick="calcAction('OK')">Pronto</button>
     </div>
   </div>
     <div class="ls-save-bar">
@@ -1032,10 +1043,10 @@ async function loadFromCloud(){
 }
 
 async function manualRefresh(){ // FIX 5
-  document.querySelector('.sync-refresh').style.transform='rotate(360deg)';
-  document.querySelector('.sync-refresh').style.transition='transform .5s';
+  const _sr=document.querySelector('.sync-refresh');
+  if(_sr){_sr.style.transition='transform .5s';_sr.style.transform='rotate(360deg)';}
   await loadFromCloud();
-  setTimeout(()=>{document.querySelector('.sync-refresh').style.transform='';document.querySelector('.sync-refresh').style.transition='';},600);
+  setTimeout(()=>{const _sr2=document.querySelector('.sync-refresh');if(_sr2){_sr2.style.transform='';_sr2.style.transition='';}},600);
 }
 
 function startRealtime(){
@@ -1343,6 +1354,9 @@ function openLaunch(type,txId){
   document.getElementById('lsAmt').className='ls-amt-inp '+(isD?'red':'green');
   document.getElementById('lsAmtDisplay').className='ls-amt-inp '+(isD?'red':'green');
   document.getElementById('calcResult').className='calc-result '+(isD?'red':'green');
+  // Toggle Pago usa verde para receita, vermelho para despesa
+  const tgPagoEl=document.querySelector('#tgPago').closest('.toggle-sw');
+  if(tgPagoEl)tgPagoEl.className='toggle-sw'+(isD?'':' toggle-grn');
   // Pre-fill calc display
   if(tx && tx.amount){
     const fmtd = tx.amount.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -1397,8 +1411,7 @@ function openLaunch(type,txId){
   selectLsUser(lsUser);
   document.getElementById('catGrid') && (document.getElementById('catGrid').innerHTML='');
   document.getElementById('launchScreen').classList.add('open');
-  // Reset and open calculator
-  calcExpr = '';
+  // Open calculator preserving pre-populated value
   calcHasResult = false;
   setTimeout(()=>openCalc(),300);
 }
@@ -1458,6 +1471,7 @@ function updateCalcDisplay(){
 function calcAction(btn){
   const ops = ['+','−','×','÷'];
   const lastChar = calcExpr.slice(-1);
+  if(btn==='CANCEL'){closeCalc();return;}
   if(btn==='C'){
     calcExpr='';
     calcHasResult=false;
@@ -2399,7 +2413,7 @@ REGRAS CRÍTICAS:
         catId,
         subId,
         desc: pattern?.desc || item.suggestedDesc || item.rawName,
-        confirmed: false, // user must explicitly confirm
+        confirmed: null, // null=não interagido, true=confirmado, false=ignorado
         isDup,
         aiSuggestCat,  // suggestion for new cat
         aiSuggestSub,  // suggestion for new sub in existing cat
@@ -2465,7 +2479,7 @@ function renderRevCard(item){
   const cat = item.catId ? findCat(item.type, item.catId) : null;
   const sub = cat && item.subId ? findSub(cat, item.subId) : null;
   const dateFormatted = item.date ? new Date(item.date+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'}) : '';
-  const cardClass = `rev-card${item.isDup?' dup':''}${item.confirmed===false&&!item.isDup?' dismissed':''}`;
+  const cardClass = `rev-card${item.isDup?' dup':''}${item.confirmed===false?' dismissed':''}` ;
   const sign = item.type==='receita' ? '+' : '−';
   const amtColor = item.type==='receita' ? 'var(--green)' : 'var(--red)';
 
@@ -2548,9 +2562,12 @@ function renderRevCard(item){
         ? `<button class="rev-act-btn skip${item.confirmed===false?' active-skip':''}" onclick="toggleImpItem('${item.id}',false)">Não lançar</button>
            <button class="rev-act-btn confirm${item.confirmed===true?' active-confirm':''}" onclick="toggleImpItem('${item.id}',true)">Lançar mesmo assim</button>`
         : item.confirmed===false
-          ? `<button class="rev-act-btn confirm" onclick="toggleImpItem('${item.id}',true)" style="background:var(--blue);color:#fff;flex:1">↩ Desfazer ignorar</button>`
+          ? `<button class="rev-act-btn confirm" onclick="toggleImpItem('${item.id}',null)" style="background:var(--blue);color:#fff;flex:1">↩ Desfazer ignorar</button>`
+          : item.confirmed===true
+          ? `<button class="rev-act-btn skip" onclick="toggleImpItem('${item.id}',false)">Ignorar</button>
+             <button class="rev-act-btn confirm active-confirm" onclick="toggleImpItem('${item.id}',null)">✓ Confirmado</button>`
           : `<button class="rev-act-btn skip" onclick="toggleImpItem('${item.id}',false)">Ignorar</button>
-             <button class="rev-act-btn confirm${item.confirmed?' ':' unconfirmed'}" onclick="toggleImpItem('${item.id}',true)">✓ Confirmar</button>`
+             <button class="rev-act-btn confirm unconfirmed" onclick="toggleImpItem('${item.id}',true)">✓ Confirmar</button>`
       }
     </div>
   </div>`;
@@ -2568,7 +2585,7 @@ function updateImpDate(id, newDate){
 function toggleImpItem(id, confirm){
   const item = importItems.find(i=>i.id===id);
   if(!item) return;
-  item.confirmed = confirm;
+  item.confirmed = confirm; // null=pendente, true=confirmado, false=ignorado
   renderImportResults();
 }
 
@@ -2579,7 +2596,7 @@ function confirmAll(){
     showToast(`⚠️ ${noCategory} item(s) sem categoria — selecione antes de confirmar`,'err');
   }
   importItems.forEach(item => {
-    if(!item.isDup && item.catId) item.confirmed = true;
+    if(!item.isDup && item.catId && item.confirmed!==false) item.confirmed = true;
   });
   renderImportResults();
 }
