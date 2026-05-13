@@ -995,8 +995,20 @@ function setSyncStatus(s,t){const bar=document.getElementById('syncBar');const t
 async function loadCategories(){
   try{
     const rows=await sbGet('categories','select=*&order=created_at.asc');
-    custD=rows.filter(r=>r.type==='despesa').map(r=>({id:r.id,icon:r.icon,name:r.name,def:false,subs:r.subs||[]}));
-    custR=rows.filter(r=>r.type==='receita').map(r=>({id:r.id,icon:r.icon,name:r.name,def:false,subs:r.subs||[]}));
+    // B19: IDs das categorias padrão (vivem em DEF_D/DEF_R, não em custD/custR)
+    const defIds=new Set([...DEF_D,...DEF_R].map(c=>c.id));
+    // Mescla subs vindas do banco de volta nas categorias padrão (preserva subs default + adiciona customizadas).
+    // Dedup por id — subs originais do código têm prioridade.
+    rows.filter(r=>defIds.has(r.id)).forEach(r=>{
+      const defList=r.type==='despesa'?DEF_D:DEF_R;
+      const defCat=defList.find(c=>c.id===r.id);
+      if(!defCat)return;
+      const existingIds=new Set((defCat.subs||[]).map(s=>s.id));
+      (r.subs||[]).forEach(s=>{if(!existingIds.has(s.id)){defCat.subs.push(s);existingIds.add(s.id);}});
+    });
+    // custD/custR recebem só as categorias que NÃO são padrão (evita duplicata no seletor).
+    custD=rows.filter(r=>r.type==='despesa'&&!defIds.has(r.id)).map(r=>({id:r.id,icon:r.icon,name:r.name,def:false,subs:r.subs||[]}));
+    custR=rows.filter(r=>r.type==='receita'&&!defIds.has(r.id)).map(r=>({id:r.id,icon:r.icon,name:r.name,def:false,subs:r.subs||[]}));
   }catch(e){
     // fallback to localStorage
     custD=JSON.parse(localStorage.getItem('fd_cd')||'[]');
@@ -1022,6 +1034,24 @@ async function updateCatInCloud(cat){
 }
 async function deleteCatFromCloud(id){
   try{await sbDelete('categories',id);}catch(e){}
+}
+
+// B19: garante que toda categoria padrão (DEF_D/DEF_R) exista na tabela categories.
+// Idempotente — só insere as que faltam. Roda em background, não bloqueia o app.
+async function seedDefaultCategories(){
+  try{
+    const rows=await sbGet('categories','select=id');
+    const existing=new Set((rows||[]).map(r=>r.id));
+    const todo=[
+      ...DEF_D.filter(c=>!existing.has(c.id)).map(c=>({cat:c,type:'despesa'})),
+      ...DEF_R.filter(c=>!existing.has(c.id)).map(c=>({cat:c,type:'receita'})),
+    ];
+    for(const {cat,type} of todo){
+      try{
+        await sbPost('categories',{id:cat.id,type,icon:cat.icon,name:cat.name,subs:cat.subs||[]});
+      }catch(e){/* ignora 409 / corrida entre dispositivos */}
+    }
+  }catch(e){/* ignora falhas de rede — re-tenta no próximo init */}
 }
 
 // ═══════════════════════════════════════
@@ -2876,6 +2906,7 @@ async function init(){
   await loadCategories();
   await loadFromCloud();
   startRealtime();
+  seedDefaultCategories(); // B19: fire-and-forget, não bloqueia o render
 }
 init();
 </script>
