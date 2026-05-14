@@ -10,6 +10,8 @@
 <title>FinIop</title>
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='120' fill='%230d0f14'/%3E%3Cdefs%3E%3ClinearGradient id='g1' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%2300e5a0'/%3E%3Cstop offset='100%25' stop-color='%234e9eff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ctext x='256' y='320' font-size='260' text-anchor='middle' fill='url(%23g1)'%3E%F0%9F%92%B8%3C/text%3E%3C/svg%3E">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
 /* FIX 6: All numbers now use DM Sans (same clean font as everything else) */
 :root{
@@ -147,6 +149,31 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .evo-leg-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
 .evo-chart{width:100%;overflow:hidden}
 .ch-card{background:var(--surf);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:12px}
+/* v6: Export buttons */
+.export-row{display:flex;gap:8px;margin-bottom:14px}
+.btn-export{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:11px 8px;border:none;border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .2s}
+.btn-export:active{opacity:.7}
+.btn-exp-pdf{background:rgba(255,78,106,.15);color:var(--red);border:1px solid rgba(255,78,106,.3)}
+.btn-exp-csv{background:rgba(0,229,160,.15);color:var(--green);border:1px solid rgba(0,229,160,.3)}
+/* v6: Pendências M7 */
+.pending-row{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:8px;padding:7px 14px;background:rgba(255,209,102,.08);border:1px solid rgba(255,209,102,.2);border-radius:var(--rs);cursor:pointer;transition:opacity .2s}
+.pending-row:active{opacity:.7}
+.pending-txt{font-size:12px;color:var(--yellow);font-weight:500}
+/* v6: Modal relatório dia 1 */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9000;display:flex;align-items:flex-end;justify-content:center;padding-bottom:env(safe-area-inset-bottom)}
+.modal-box{background:var(--surf);border-radius:var(--r) var(--r) 0 0;width:100%;max-width:430px;max-height:80vh;display:flex;flex-direction:column;padding:20px 20px 28px}
+.modal-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.modal-ttl{font-size:16px;font-weight:700;color:var(--text)}
+.modal-close{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:4px}
+.modal-body{overflow-y:auto;flex:1;font-size:13px;line-height:1.6;color:var(--muted2)}
+.modal-body h2{font-size:14px;font-weight:700;color:var(--text);margin:14px 0 6px}
+.modal-body strong{color:var(--text)}
+.modal-actions{display:flex;gap:8px;margin-top:16px;flex-shrink:0}
+.modal-btn{flex:1;padding:12px;border:none;border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-weight:700;font-size:14px;cursor:pointer;transition:opacity .2s}
+.modal-btn:active{opacity:.7}
+.modal-btn-wpp{background:#25D366;color:#fff}
+.modal-btn-copy{background:var(--surf3);color:var(--text)}
+.modal-btn-close{background:var(--surf3);color:var(--muted2);font-size:13px}
 .ch-ttl{font-weight:700;font-size:12px;margin-bottom:14px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
 .bar-row{display:flex;align-items:center;gap:9px;margin-bottom:9px}
 .bar-lbl{font-size:11px;width:95px;flex-shrink:0;display:flex;align-items:center;gap:4px;overflow:hidden}
@@ -474,6 +501,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <div class="sum">
     <div class="bal-lbl">Saldo do mês</div>
     <div class="bal-val pos" id="balVal">R$ 0,00</div>
+    <!-- v6: M7 pendências -->
+    <div class="pending-row" id="pendingRow" style="display:none" onclick="goToPending()">
+      <span class="pending-txt" id="pendingTxt">📌 R$ 0,00 em pendências (0 itens)</span>
+    </div>
     <div class="sum-row">
       <div class="sum-item"><div class="sum-item-lbl">📈 Receitas</div><div class="sum-item-val c-g" id="totInc">R$ 0,00</div></div>
       <div class="sum-item"><div class="sum-item-lbl">📉 Despesas</div><div class="sum-item-val c-r" id="totExp">R$ 0,00</div></div>
@@ -511,6 +542,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <button onclick="openAnalysis()" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;border:none;border-radius:var(--rs);background:linear-gradient(135deg,rgba(78,158,255,.15),rgba(0,229,160,.15));border:1px solid rgba(78,158,255,.3);color:var(--blue);font-weight:700;font-size:14px;cursor:pointer;margin-bottom:14px;transition:all .2s" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">
       🤖 Analisar meus gastos com IA
     </button>
+    <!-- v6: A2 + A2b export buttons -->
+    <div class="export-row">
+      <button class="btn-export btn-exp-pdf" onclick="exportPDF()">📄 Exportar PDF</button>
+      <button class="btn-export btn-exp-csv" onclick="exportCSV()">📊 Exportar CSV</button>
+    </div>
     <!-- A1: Balanço do período -->
     <div class="period-card">
       <div class="period-ttl">📅 Balanço do período</div>
@@ -1165,6 +1201,7 @@ function renderSummary(){
   bv.textContent=fmt(bal);bv.className='bal-val '+(bal>=0?'pos':'neg');
   document.getElementById('totInc').textContent=fmt(inc);
   document.getElementById('totExp').textContent=fmt(exp);
+  renderPending(); // v6: M7
 }
 function renderTxList(){
   const list=filterTxs(getMonthTxs()).sort((a,b)=>b.date.localeCompare(a.date));
@@ -2900,6 +2937,259 @@ Seja direto, use os nomes reais das categorias e estabelecimentos, e forneça in
 }
 
 // ═══════════════════════════════════════
+//  v6: EXPORT PDF (A2)
+// ═══════════════════════════════════════
+function exportPDF(){
+  if(typeof window.jspdf === 'undefined' && typeof jsPDF === 'undefined'){
+    showToast('jsPDF não carregado. Verifique a conexão.','err');return;
+  }
+  const {jsPDF: JSPDF} = window.jspdf || {jsPDF};
+  try{
+  const doc = new JSPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const monthTxs = getMonthTxs().sort((a,b)=>a.date.localeCompare(b.date));
+  const inc = monthTxs.filter(x=>x.type==='receita').reduce((a,x)=>a+x.amount,0);
+  const exp = monthTxs.filter(x=>x.type==='despesa').reduce((a,x)=>a+x.amount,0);
+  const bal = inc - exp;
+  const mthLabel = MONTHS[curMonth]+' '+curYear;
+  const today2 = new Date().toLocaleDateString('pt-BR');
+  const pageW = 210;
+
+  // Header
+  doc.setFillColor(13,15,20);
+  doc.rect(0,0,pageW,28,'F');
+  doc.setTextColor(0,229,160);
+  doc.setFontSize(20);doc.setFont('helvetica','bold');
+  doc.text('FinIop',14,13);
+  doc.setTextColor(180,190,210);
+  doc.setFontSize(10);doc.setFont('helvetica','normal');
+  doc.text('Relatório Mensal — '+mthLabel,14,21);
+  doc.setFontSize(8);
+  doc.text('Gerado em '+today2,pageW-14,21,{align:'right'});
+
+  // Summary cards
+  let y=36;
+  const cards=[
+    {label:'Receitas',value:fmtPDF(inc),color:[0,229,160]},
+    {label:'Despesas',value:fmtPDF(exp),color:[255,78,106]},
+    {label:'Saldo',value:fmtPDF(bal),color:bal>=0?[0,229,160]:[255,78,106]},
+  ];
+  const cw=(pageW-28)/3;
+  cards.forEach((c,i)=>{
+    const cx=14+i*cw;
+    doc.setFillColor(30,35,51);
+    doc.roundedRect(cx,y,cw-4,20,3,3,'F');
+    doc.setTextColor(107,122,153);doc.setFontSize(8);doc.setFont('helvetica','normal');
+    doc.text(c.label,cx+4,y+7);
+    doc.setTextColor(...c.color);doc.setFontSize(11);doc.setFont('helvetica','bold');
+    doc.text(c.value,cx+4,y+16);
+  });
+
+  // Category ranking
+  y+=28;
+  const expTxs=monthTxs.filter(x=>x.type==='despesa');
+  const catMap={};
+  expTxs.forEach(x=>{const cat=findCat(x.type,x.catId)||{icon:'',name:'Outros'};const k=cat.name;catMap[k]=(catMap[k]||0)+x.amount;});
+  const sorted=Object.entries(catMap).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  if(sorted.length){
+    doc.setFillColor(22,26,36);
+    doc.rect(14,y,pageW-28,6+sorted.length*7+4,'F');
+    doc.setTextColor(107,122,153);doc.setFontSize(8);doc.setFont('helvetica','bold');
+    doc.text('DESPESAS POR CATEGORIA',16,y+5);
+    y+=8;
+    const maxVal=sorted[0][1];
+    const BARCOLORS=[[0,229,160],[78,158,255],[255,78,106],[255,209,102],[160,120,255],[255,160,80],[80,200,255],[200,80,255]];
+    sorted.forEach(([name,val],i)=>{
+      const pct=val/maxVal;
+      const barW=(pageW-28-60)*pct;
+      doc.setFillColor(...BARCOLORS[i%BARCOLORS.length]);
+      doc.rect(76,y-3.5,barW,5,'F');
+      doc.setTextColor(180,190,210);doc.setFontSize(7);doc.setFont('helvetica','normal');
+      doc.text(name.slice(0,22),16,y+1);
+      doc.setTextColor(...BARCOLORS[i%BARCOLORS.length]);
+      doc.text(fmtPDF(val),pageW-16,y+1,{align:'right'});
+      y+=7;
+    });
+    y+=4;
+  }
+
+  // Transactions table
+  y+=2;
+  doc.setTextColor(107,122,153);doc.setFontSize(8);doc.setFont('helvetica','bold');
+  doc.text('LANÇAMENTOS DO MÊS ('+monthTxs.length+')',14,y);
+  y+=4;
+
+  const rows=monthTxs.map(t=>{
+    const cat=findCat(t.type,t.catId)||{name:'Outros'};
+    const sub=findSub(cat,t.subId);
+    const d=new Date(t.date+'T12:00:00');
+    return[
+      d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}),
+      (t.desc||cat.name).slice(0,30),
+      cat.name.slice(0,14)+(sub?' / '+sub.name.slice(0,10):''),
+      t.type==='receita'?'Receita':'Despesa',
+      (t.type==='receita'?'+':'-')+' '+fmtPDF(t.amount),
+      t.user||'E',
+      t.pago?'✓':'✗',
+    ];
+  });
+
+  doc.autoTable({
+    startY:y,
+    head:[['Data','Descrição','Categoria','Tipo','Valor','Us.','Pago']],
+    body:rows,
+    theme:'grid',
+    styles:{fontSize:7,cellPadding:2,font:'helvetica',textColor:[180,190,210],fillColor:[22,26,36],lineColor:[44,52,80],lineWidth:.3},
+    headStyles:{fillColor:[30,35,51],textColor:[107,122,153],fontStyle:'bold',fontSize:7},
+    alternateRowStyles:{fillColor:[19,23,32]},
+    columnStyles:{
+      0:{cellWidth:14},1:{cellWidth:52},2:{cellWidth:32},3:{cellWidth:16},
+      4:{cellWidth:24,halign:'right'},5:{cellWidth:8,halign:'center'},6:{cellWidth:8,halign:'center'}
+    },
+    margin:{left:14,right:14},
+  });
+
+  // Footer
+  const pages=doc.internal.getNumberOfPages();
+  for(let i=1;i<=pages;i++){
+    doc.setPage(i);
+    doc.setFontSize(7);doc.setTextColor(70,80,100);doc.setFont('helvetica','normal');
+    doc.text('FinIop — Relatório gerado em '+today2,14,295);
+    doc.text('Pág. '+i+'/'+pages,pageW-14,295,{align:'right'});
+  }
+
+  doc.save('FinIop_'+mthLabel.replace(' ','_')+'.pdf');
+  showToast('PDF gerado! ✅','ok');
+  }catch(e){
+    showToast('Erro ao gerar PDF: '+e.message,'err');
+    console.error('exportPDF:',e);
+  }
+}
+
+function fmtPDF(v){
+  return 'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+
+// ═══════════════════════════════════════
+//  v6: EXPORT CSV (A2b)
+// ═══════════════════════════════════════
+function exportCSV(){
+  const monthTxs=getMonthTxs().sort((a,b)=>a.date.localeCompare(b.date));
+  const mthLabel=MONTHS[curMonth]+' '+curYear;
+  const header=['Data','Tipo','Descrição','Categoria','Subcategoria','Valor','Pago','Usuário','Observações'];
+  const rows=monthTxs.map(t=>{
+    const cat=findCat(t.type,t.catId)||{name:'Outros'};
+    const sub=findSub(cat,t.subId);
+    const d=new Date(t.date+'T12:00:00');
+    const dateStr=d.toLocaleDateString('pt-BR');
+    const tipo=t.type==='receita'?'Receita':'Despesa';
+    const desc=(t.desc||cat.name).replace(/"/g,'""');
+    const catName=cat.name.replace(/"/g,'""');
+    const subName=(sub?.name||'').replace(/"/g,'""');
+    const valor=t.amount.toFixed(2).replace('.',',');
+    const pago=t.pago?'Sim':'Não';
+    const user=t.user==='E'?'Elton':t.user==='C'?'Cláudia':t.user==='S'?'Saulo':t.user||'Elton';
+    const obs=(t.obs||'').replace(/"/g,'""');
+    return[dateStr,tipo,`"${desc}"`,`"${catName}"`,`"${subName}"`,valor,pago,user,`"${obs}"`].join(';');
+  });
+  const csv='﻿'+header.join(';')+'
+'+rows.join('
+');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='FinIop_'+mthLabel.replace(' ','_')+'.csv';
+  document.body.appendChild(a);a.click();
+  document.body.removeChild(a);URL.revokeObjectURL(url);
+  showToast('CSV exportado! ✅','ok');
+}
+
+// ═══════════════════════════════════════
+//  v6: M7 TOTALIZADOR DE PENDÊNCIAS
+// ═══════════════════════════════════════
+function renderPending(){
+  const pending=getMonthTxs().filter(t=>!t.pago&&t.type==='despesa');
+  const row=document.getElementById('pendingRow');
+  const txt=document.getElementById('pendingTxt');
+  if(!row||!txt)return;
+  if(!pending.length){row.style.display='none';return;}
+  const total=pending.reduce((a,x)=>a+x.amount,0);
+  txt.textContent='📌 '+fmt(total)+' em pendências ('+pending.length+' '+(pending.length===1?'item':'itens')+')';
+  row.style.display='flex';
+}
+function goToPending(){
+  showPage('home');
+  setFilter('npago');
+  const el=document.getElementById('fNPago');
+  if(el)el.scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+
+// ═══════════════════════════════════════
+//  v6: A4 RELATÓRIO AUTOMÁTICO DIA 1
+// ═══════════════════════════════════════
+let monthReportText='';
+async function checkAndShowMonthReport(){
+  const now=new Date();
+  if(now.getDate()!==1)return;
+  // mês anterior
+  const prevMonth=now.getMonth()===0?11:now.getMonth()-1;
+  const prevYear=now.getMonth()===0?now.getFullYear()-1:now.getFullYear();
+  const key='finiop_report_'+prevYear+'_'+String(prevMonth+1).padStart(2,'0');
+  if(localStorage.getItem(key))return; // já foi exibido
+  // gerar análise do mês anterior
+  const prevTxs=txs.filter(t=>{const d=new Date(t.date+'T12:00:00');return d.getMonth()===prevMonth&&d.getFullYear()===prevYear;});
+  if(!prevTxs.length)return; // nada a reportar
+  const modal=document.getElementById('monthReportModal');
+  const body=document.getElementById('monthReportBody');
+  modal.style.display='flex';
+  body.innerHTML='<div style="text-align:center;padding:20px 0"><span style="font-size:28px">🤖</span><br><br><span style="color:var(--muted)">Gerando análise do mês anterior...</span></div>';
+  try{
+    const inc=prevTxs.filter(x=>x.type==='receita').reduce((a,x)=>a+x.amount,0);
+    const exp=prevTxs.filter(x=>x.type==='despesa').reduce((a,x)=>a+x.amount,0);
+    const byCat={};
+    prevTxs.filter(x=>x.type==='despesa').forEach(t=>{const cat=findCat(t.type,t.catId);const k=cat?.name||'Sem categoria';if(!byCat[k])byCat[k]={total:0,items:[]};byCat[k].total+=t.amount;byCat[k].items.push(t.desc||k);});
+    const catsStr=Object.entries(byCat).sort((a,b)=>b[1].total-a[1].total).map(([n,d])=>`  - ${n}: R$ ${d.total.toFixed(2)}`).join('
+');
+    const mthName=MONTHS[prevMonth]+' '+prevYear;
+    const prompt=`Você é um assistente financeiro pessoal. Faça um resumo CURTO e DIRETO do mês de ${mthName} para uma família brasileira.
+
+DADOS DO MÊS:
+Receitas: R$ ${inc.toFixed(2)}
+Despesas: R$ ${exp.toFixed(2)}
+Saldo: R$ ${(inc-exp).toFixed(2)}
+Categorias de despesa:
+${catsStr||'(sem despesas)'}
+
+Responda em português. Use no máximo 4 seções curtas com ## como título. Seja específico com os números. Máximo 250 palavras. Termine com 2 dicas práticas para o próximo mês.`;
+    const data=await callAnthropicAPI({model:'claude-sonnet-4-20250514',max_tokens:600,messages:[{role:'user',content:prompt}]});
+    monthReportText=data.content?.find(b=>b.type==='text')?.text||'Não foi possível gerar a análise.';
+    localStorage.setItem(key,'shown'); // marca só após sucesso
+    const html=monthReportText
+      .replace(/## (.*)/g,'<h2>$1</h2>')
+      .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+      .replace(/R\$ ([\d.,]+)/g,(m,v)=>`<strong style="color:var(--text)">R$ ${v}</strong>`);
+    body.innerHTML=`<div style="line-height:1.7">${html}</div>`;
+  }catch(e){
+    body.innerHTML=`<div style="color:var(--muted);padding:12px">Não foi possível gerar a análise automática.<br><small>${e.message}</small></div>`;
+    monthReportText='';
+  }
+}
+function closeMonthReport(){document.getElementById('monthReportModal').style.display='none';}
+function shareMonthReport(mode){
+  const _now=new Date();
+  const _pm=_now.getMonth()===0?11:_now.getMonth()-1;
+  const _py=_now.getMonth()===0?_now.getFullYear()-1:_now.getFullYear();
+  const mthName=MONTHS[_pm]+' '+_py;
+  const txt=monthReportText||'Relatório FinIop — '+mthName;
+  if(mode==='wpp'){
+    const enc=encodeURIComponent(txt);
+    if(navigator.share){navigator.share({title:'Relatório FinIop',text:txt}).catch(()=>{window.open('https://wa.me/?text='+enc,'_blank');});}
+    else{window.open('https://wa.me/?text='+enc,'_blank');}
+  }else{
+    navigator.clipboard?.writeText(txt).then(()=>showToast('Copiado! ✅','ok')).catch(()=>showToast('Não foi possível copiar','err'));
+  }
+}
+
+// ═══════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════
 async function init(){
@@ -2907,8 +3197,26 @@ async function init(){
   await loadFromCloud();
   startRealtime();
   seedDefaultCategories(); // B19: fire-and-forget, não bloqueia o render
+  checkAndShowMonthReport(); // v6: A4 — verifica dia 1 do mês
 }
 init();
 </script>
+<!-- v6: A4 modal relatório mensal dia 1 -->
+<div class="modal-overlay" id="monthReportModal" style="display:none" onclick="if(event.target===this)closeMonthReport()">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <div class="modal-ttl">📊 Relatório do mês anterior</div>
+      <button class="modal-close" onclick="closeMonthReport()">✕</button>
+    </div>
+    <div class="modal-body" id="monthReportBody">Gerando análise...</div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-wpp" onclick="shareMonthReport('wpp')">📲 WhatsApp</button>
+      <button class="modal-btn modal-btn-copy" onclick="shareMonthReport('copy')">📋 Copiar</button>
+    </div>
+    <div style="margin-top:8px">
+      <button class="modal-btn modal-btn-close" style="width:100%" onclick="closeMonthReport()">Fechar</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
