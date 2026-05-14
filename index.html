@@ -3091,9 +3091,7 @@ function exportCSV(){
     const obs=(t.obs||'').replace(/"/g,'""');
     return[dateStr,tipo,`"${desc}"`,`"${catName}"`,`"${subName}"`,valor,pago,user,`"${obs}"`].join(';');
   });
-  const csv='﻿'+header.join(';')+'
-'+rows.join('
-');
+  const csv='\uFEFF'+header.join(';')+'\n'+rows.join('\n');
   const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
@@ -3147,8 +3145,7 @@ async function checkAndShowMonthReport(){
     const exp=prevTxs.filter(x=>x.type==='despesa').reduce((a,x)=>a+x.amount,0);
     const byCat={};
     prevTxs.filter(x=>x.type==='despesa').forEach(t=>{const cat=findCat(t.type,t.catId);const k=cat?.name||'Sem categoria';if(!byCat[k])byCat[k]={total:0,items:[]};byCat[k].total+=t.amount;byCat[k].items.push(t.desc||k);});
-    const catsStr=Object.entries(byCat).sort((a,b)=>b[1].total-a[1].total).map(([n,d])=>`  - ${n}: R$ ${d.total.toFixed(2)}`).join('
-');
+    const catsStr=Object.entries(byCat).sort((a,b)=>b[1].total-a[1].total).map(([n,d])=>`  - ${n}: R$ ${d.total.toFixed(2)}`).join('\n');
     const mthName=MONTHS[prevMonth]+' '+prevYear;
     const prompt=`Você é um assistente financeiro pessoal. Faça um resumo CURTO e DIRETO do mês de ${mthName} para uma família brasileira.
 
