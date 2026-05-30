@@ -77,7 +77,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .btn-d{background:var(--rdim);border:1px solid var(--rborder);color:var(--red)}
 
 .sec-lbl{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);padding:0 18px;margin-bottom:8px}
-.search-sticky{position:sticky;top:56px;z-index:15;background:var(--bg);padding:6px 0 2px}
+.search-sticky{position:sticky;top:var(--sticky-top,56px);z-index:15;background:var(--bg);padding:6px 0 2px}
 .search-bar{display:flex;align-items:center;gap:8px;margin:0 14px 8px;background:var(--surf2);border:1px solid var(--border);border-radius:var(--rs);padding:9px 12px;transition:border-color .2s}
 .search-bar:focus-within{border-color:var(--blue)}
 .search-ico{font-size:15px;color:var(--muted);flex-shrink:0}
@@ -279,6 +279,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .toggle-sw input:checked+.toggle-track{background:var(--red)}
 .toggle-sw input:checked+.toggle-track::before{transform:translateX(19px)}
 .toggle-grn input:checked+.toggle-track{background:var(--green)!important}
+.toggle-pago input:checked+.toggle-track{background:var(--green)!important}
 .repeat-opts{background:var(--surf2);border-bottom:1px solid rgba(255,255,255,.05);padding:10px 18px 12px 56px;display:none}
 .repeat-opts.show{display:block}
 .rep-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px}
@@ -704,7 +705,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <span class="ls-row-ico">✅</span>
       <div class="ls-row-content">
         <span class="ls-row-lbl">Pago</span>
-        <label class="toggle-sw"><input type="checkbox" id="tgPago" checked><div class="toggle-track"></div></label>
+        <label class="toggle-sw toggle-pago"><input type="checkbox" id="tgPago" checked><div class="toggle-track"></div></label>
       </div>
     </div>
     <div class="ls-row">
@@ -1061,7 +1062,8 @@ async function saveCatToCloud(cat,type){
 }
 async function updateCatInCloud(cat){
   try{
-    const r=await fetch(`${SB_URL}/rest/v1/categories?id=eq.${cat.id}`,{method:'PATCH',headers:{...SB_HDR,'Prefer':'return=minimal'},body:JSON.stringify({subs:cat.subs})});
+    // B10b: persistir tambem name e icon (antes so subs era enviado — renomear nao salvava)
+    const r=await fetch(`${SB_URL}/rest/v1/categories?id=eq.${cat.id}`,{method:'PATCH',headers:{...SB_HDR,'Prefer':'return=minimal'},body:JSON.stringify({name:cat.name,icon:cat.icon,subs:cat.subs})});
     if(!r.ok)throw new Error();
   }catch(e){
     localStorage.setItem('fd_cd',JSON.stringify(custD));
@@ -1421,9 +1423,7 @@ function openLaunch(type,txId){
   document.getElementById('lsAmt').className='ls-amt-inp '+(isD?'red':'green');
   document.getElementById('lsAmtDisplay').className='ls-amt-inp '+(isD?'red':'green');
   document.getElementById('calcResult').className='calc-result '+(isD?'red':'green');
-  // Toggle Pago usa verde para receita, vermelho para despesa
-  const tgPagoEl=document.querySelector('#tgPago').closest('.toggle-sw');
-  if(tgPagoEl)tgPagoEl.className='toggle-sw'+(isD?'':' toggle-grn');
+  // B16: Toggle Pago e sempre verde (classe fixa .toggle-pago no markup)
   // Pre-fill calc display
   if(tx && tx.amount){
     const fmtd = tx.amount.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -1566,8 +1566,11 @@ function calcAction(btn){
       document.getElementById('lsAmt').value = final;
       calcExpr = String(final).replace('.',',');
       calcHasResult=true;
+      closeCalc();
+    } else {
+      // B17: expressao vazia ou invalida — avisa e mantem a calc aberta
+      showToast('Digite um valor válido','err');
     }
-    closeCalc();
     return;
   } else if(ops.includes(btn)){
     // If last char is also an op, replace it
@@ -1778,16 +1781,47 @@ async function submitLaunch(){
         type:lsType,amount,description:descFinal,
         obs,cat_id:lsSelCatId,sub_id:lsSelSubId||null,
         user_initial:lsUser,pago,fixo,repeat_tx:repeat,
-        repeat_unit:lsRepeatUnit,repeat_n:repeatN,
       };
+      // B8: ao desligar Repetir, limpar explicitamente os campos de recorrencia.
+      // (os ramos especificos abaixo sobrescrevem quando repeat/fixo continuam ativos)
+      if(repeat){
+        updated.repeat_unit=lsRepeatUnit;
+        updated.repeat_n=repeatN;
+      } else {
+        updated.repeat_unit=null;
+        updated.repeat_n=null;
+        updated.repeat_index=null;
+        updated.repeat_total=null;
+      }
       if(updateAll&&tx?.group_id){
         // Update all siblings keeping their original dates and indices
         // If new repeatN < old series size, delete extra ones
         const allInGroup=txs.filter(t=>t.group_id===tx.group_id).sort((a,b)=>a.date.localeCompare(b.date));
-        const keep=allInGroup.slice(0,repeatN);
-        const remove=allInGroup.slice(repeatN);
-        // Delete removed ones
+        let keep, remove;
+        if(repeatN>=allInGroup.length){
+          // Nao reduz a serie: mantem todos
+          keep=allInGroup; remove=[];
+        } else {
+          // B9: ao reduzir N, preservar o lancamento editado e os mais proximos a ele,
+          // nunca deletar cegamente os mais antigos.
+          const editIdx=allInGroup.findIndex(t=>t.id===editingTxId);
+          const anchor=editIdx>=0?editIdx:0;
+          let start=Math.min(anchor, allInGroup.length-repeatN);
+          if(start<0)start=0;
+          keep=allInGroup.slice(start,start+repeatN);
+          remove=allInGroup.filter(t=>!keep.includes(t));
+        }
+        // B9: avisar antes de operacao destrutiva
         if(remove.length>0){
+          const okDel=await customConfirm(
+            'Reduzir a série',
+            `Esta alteração vai apagar ${remove.length} lançamento(s) da série que ficaram de fora do novo total de ${repeatN}. Deseja continuar?`,
+            [
+              {label:'Cancelar',desc:'Mantém a série como está',cls:'cc-cancel',value:'cancel'},
+              {label:'Continuar',desc:'Apaga os excedentes e atualiza o restante',cls:'cc-future',value:'ok'},
+            ]
+          );
+          if(okDel!=='ok'){return;}
           for(const t of remove){
             await sbDelete('transactions',t.id);
             txs=txs.filter(x=>x.id!==t.id);
@@ -1803,6 +1837,38 @@ async function submitLaunch(){
         showToast(`✅ Série atualizada (${Math.min(repeatN,keep.length)} lançamentos)!`,'ok');
       } else {
         // Update only this one, keep date unchanged
+        // B4: conversao para Despesa Fixa (REPETE->FIXO ou simples->FIXO)
+        const wasFixo = !!tx?.fixo;
+        if(fixo && !wasFixo){
+          // Apaga eventuais siblings da serie antiga (REPETE) — exceto o atual
+          const oldSiblings=txs.filter(t=>t.group_id&&tx&&t.group_id===tx.group_id&&t.id!==editingTxId);
+          for(const s of oldSiblings){
+            await sbDelete('transactions',s.id);
+            txs=txs.filter(x=>x.id!==s.id);
+          }
+          // Converte o lancamento atual em fixo 1/12
+          const fixGroupId='g_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
+          const patchFix={...updated,date:baseDate,group_id:fixGroupId,
+            fixo:true,repeat_tx:false,repeat_unit:null,repeat_n:null,
+            repeat_index:1,repeat_total:12};
+          await sbPatch('transactions',editingTxId,patchFix);
+          const fIdx=txs.findIndex(t=>t.id===editingTxId);
+          if(fIdx>=0)txs[fIdx]={...txs[fIdx],...rowToTx({id:editingTxId,...patchFix,description:descFinal}),desc:descFinal};
+          // Cria os 11 meses futuros
+          const fixDates=generateRecurringDates(baseDate,'mensal',12).slice(1);
+          const fixRows=fixDates.map((date,i)=>txToRow({
+            id:uid(),group_id:fixGroupId,type:lsType,amount,desc:descFinal,obs,date,
+            catId:lsSelCatId,subId:lsSelSubId||null,user:lsUser,
+            pago:false,fixo:true,repeat:false,
+            repeatIndex:i+2,repeatTotal:12,
+          }));
+          await sbPostBatch('transactions',fixRows);
+          fixRows.forEach(r=>txs.push(rowToTx(r)));
+          showToast('✅ Convertido em despesa fixa (12 meses)!','ok');
+          localStorage.setItem('fd_txs_bk',JSON.stringify(txs));
+          closeLaunch();render();
+          return;
+        }
         // B2 fix: se repeat foi ATIVADO num lançamento simples (sem série), criar os futuros
         // wasSimple: o lançamento original NÃO tinha repeat ativo (independente de siblings)
         const wasSimple = !tx?.repeat;
@@ -1944,6 +2010,23 @@ async function deleteCurrentTx(){
       showToast(`🗑 ${toDelete.length} lançamento(s) excluído(s)`,'ok');
     }
 
+    // B3: se a serie ficou com apenas 1 membro, ele deixa de ser serie —
+    // limpa as flags de recorrencia/fixo para nao exibir badge fantasma "1/X".
+    if(tx.group_id){
+      const restantes=txs.filter(t=>t.group_id===tx.group_id);
+      if(restantes.length===1){
+        const lone=restantes[0];
+        if(lone.repeat||lone.fixo||lone.repeatIndex||lone.repeatTotal){
+          await sbPatch('transactions',lone.id,{
+            repeat_tx:false,fixo:false,repeat_unit:null,repeat_n:null,
+            repeat_index:null,repeat_total:null
+          });
+          const li=txs.findIndex(t=>t.id===lone.id);
+          if(li>=0)txs[li]={...txs[li],repeat:false,fixo:false,repeatUnit:null,repeatN:null,repeatIndex:null,repeatTotal:null};
+        }
+      }
+    }
+
     localStorage.setItem('fd_txs_bk',JSON.stringify(txs));
     closeLaunch();render();
     setSyncStatus('ok','Sincronizado ✓');
@@ -2015,12 +2098,20 @@ async function submitNewSubCat(){
   }
 }
 async function deleteCat(id,type){
-  if(!confirm('Excluir esta categoria?'))return;
+  const ok=await customConfirm('Excluir categoria','Tem certeza que deseja excluir esta categoria?',[
+    {label:'Cancelar',desc:'',cls:'cc-cancel',value:'cancel'},
+    {label:'Excluir',desc:'Esta ação não pode ser desfeita',cls:'cc-single',value:'ok'},
+  ]);
+  if(ok!=='ok')return;
   if(type==='despesa')custD=custD.filter(c=>c.id!==id);else custR=custR.filter(c=>c.id!==id);
   await deleteCatFromCloud(id);renderCatTree();
 }
 async function deleteSub(catId,subId,type){
-  if(!confirm('Excluir esta subcategoria?'))return;
+  const ok=await customConfirm('Excluir subcategoria','Tem certeza que deseja excluir esta subcategoria?',[
+    {label:'Cancelar',desc:'',cls:'cc-cancel',value:'cancel'},
+    {label:'Excluir',desc:'Esta ação não pode ser desfeita',cls:'cc-single',value:'ok'},
+  ]);
+  if(ok!=='ok')return;
   // Only allow deleting subs from custom categories — not from defaults
   const custList = type==='despesa' ? custD : custR;
   const custCat = custList.find(c=>c.id===catId);
@@ -2030,25 +2121,15 @@ async function deleteSub(catId,subId,type){
     renderCatTree();
     return;
   }
-  // For default categories, find and modify but warn user it resets on reload
-  const defList = type==='despesa' ? DEF_D : DEF_R;
-  const defCat = defList.find(c=>c.id===catId);
-  if(defCat&&defCat.subs){
-    defCat.subs=defCat.subs.filter(s=>s.id!==subId);
-    renderCatTree();
-    showToast('Subcategoria removida (volta ao recarregar o app)','ok');
-  }
+  // B10: nao mexer em categorias padrao — bloquear com aviso claro
+  showToast('Subcategorias padrão não podem ser removidas','err');
 }
 
 // ═══════════════════════════════════════
 //  U5: CRIAR CAT/SUB A PARTIR DO PICKER
 // ═══════════════════════════════════════
-// Guarda contexto para retornar ao picker após criar
-let _pickerCatType=null;
-
 function openNewCatFromPicker(){
-  // Salva o tipo atual e abre modal de nova cat sem fechar picker
-  _pickerCatType=lsType;
+  // Abre modal de nova cat sem fechar o picker
   newCatType=lsType;nctSelEmoji='📦';
   document.getElementById('nctName').value='';
   document.getElementById('catPreview').textContent=nctSelEmoji;
@@ -2056,21 +2137,6 @@ function openNewCatFromPicker(){
   document.getElementById('nctR').className='tog-btn'+(lsType==='receita'?' sb':'');
   buildEmojiGrid('emojiGrid','catPreview',nctSelEmoji,'pickCatEmoji');
   document.getElementById('overlayCat').classList.add('open');
-}
-
-async function submitNewCatFromPicker(){
-  // override submitNewCat to also refresh picker and auto-select
-  const name=document.getElementById('nctName').value.trim();
-  if(!name){showToast('Dê um nome à categoria!','err');return;}
-  const nc={id:'c_'+Date.now(),icon:nctSelEmoji,name,def:false,subs:[]};
-  if(newCatType==='despesa')custD.push(nc);else custR.push(nc);
-  await saveCatToCloud(nc,newCatType);
-  closeNewCatModal();
-  // auto-select the new category
-  lsSelCatId=nc.id;lsSelSubId=null;
-  updateCatPill();
-  openSubcatPicker(); // refresh picker
-  showToast('✅ Categoria criada!','ok');
 }
 
 function openNewSubFromPicker(catId,type){
@@ -2082,21 +2148,6 @@ function openNewSubFromPicker(catId,type){
   document.getElementById('subPreview').textContent=nscSelEmoji;
   buildEmojiGrid('emojiGridSub','subPreview',nscSelEmoji,'pickSubEmoji');
   document.getElementById('overlaySubCat').classList.add('open');
-}
-
-async function submitNewSubFromPicker(){
-  const name=document.getElementById('nscName').value.trim();
-  if(!name){showToast('Dê um nome à subcategoria!','err');return;}
-  const ns={id:'s_'+Date.now(),icon:nscSelEmoji,name,def:false};
-  const cat=[...DEF_D,...DEF_R,...custD,...custR].find(c=>c.id===newSubForCatId);
-  if(cat){if(!cat.subs)cat.subs=[];cat.subs.push(ns);}
-  await updateCatInCloud(cat);
-  closeNewSubCatModal();
-  // auto-select newly created sub
-  lsSelCatId=newSubForCatId;lsSelSubId=ns.id;
-  updateCatPill();
-  openSubcatPicker(); // refresh picker
-  showToast('✅ Subcategoria criada!','ok');
 }
 
 // ═══════════════════════════════════════
@@ -2136,31 +2187,27 @@ async function submitEditCat(){
   const name=document.getElementById('editCatName').value.trim();
   if(!name){showToast('Dê um nome!','err');return;}
   const custList=editingCatType==='despesa'?custD:custR;
-  const defList=editingCatType==='despesa'?DEF_D:DEF_R;
+  // B10: categorias/subcategorias padrao nao sao editaveis (nao persistem no Supabase)
+  const isCustomCat=custList.some(c=>c.id===editingCatId);
+  if(!isCustomCat){
+    showToast('Categorias padrão não podem ser editadas','err');
+    closeEditCatModal();
+    return;
+  }
+  const cat=custList.find(c=>c.id===editingCatId);
   if(editingSubId){
-    // Edit subcategory
-    const cat=[...custList,...defList].find(c=>c.id===editingCatId);
+    // Edit subcategory (apenas de categoria personalizada)
     if(!cat){showToast('Categoria não encontrada','err');return;}
     const sub=(cat.subs||[]).find(s=>s.id===editingSubId);
     if(!sub){showToast('Subcategoria não encontrada','err');return;}
     sub.name=name;sub.icon=editSelEmoji;
-    if(custList.find(c=>c.id===editingCatId)){
-      await updateCatInCloud(cat);
-      showToast('✅ Subcategoria atualizada!','ok');
-    } else {
-      showToast('Subcategoria padrão atualizada (volta ao recarregar)','ok');
-    }
+    await updateCatInCloud(cat);
+    showToast('✅ Subcategoria atualizada!','ok');
   } else {
-    // Edit category
-    const custCat=custList.find(c=>c.id===editingCatId);
-    if(custCat){
-      custCat.name=name;custCat.icon=editSelEmoji;
-      await updateCatInCloud(custCat);
-      showToast('✅ Categoria atualizada!','ok');
-    } else {
-      const defCat=defList.find(c=>c.id===editingCatId);
-      if(defCat){defCat.name=name;defCat.icon=editSelEmoji;showToast('Categoria padrão atualizada (volta ao recarregar)','ok');}
-    }
+    // Edit category (personalizada)
+    cat.name=name;cat.icon=editSelEmoji;
+    await updateCatInCloud(cat);
+    showToast('✅ Categoria atualizada!','ok');
   }
   closeEditCatModal();renderCatTree();updateCatPill();
 }
@@ -3189,12 +3236,25 @@ function shareMonthReport(mode){
 // ═══════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════
+// B18: calcula o top da search-sticky dinamicamente a partir da altura real
+// do header (.hdr) — a sync-bar nao e sticky, entao so o .hdr fica fixo no topo.
+function updateStickyTop(){
+  const hdr=document.querySelector('.hdr');
+  if(!hdr)return;
+  const h=Math.round(hdr.getBoundingClientRect().height);
+  document.documentElement.style.setProperty('--sticky-top',h+'px');
+}
+window.addEventListener('resize',updateStickyTop);
+window.addEventListener('orientationchange',updateStickyTop);
+
 async function init(){
+  updateStickyTop(); // B18: antes de qualquer render
   await loadCategories();
   await loadFromCloud();
   startRealtime();
   seedDefaultCategories(); // B19: fire-and-forget, não bloqueia o render
   checkAndShowMonthReport(); // v6: A4 — verifica dia 1 do mês
+  updateStickyTop(); // B18: recalcula apos layout estabilizar
 }
 init();
 </script>
