@@ -1098,7 +1098,7 @@ async function seedDefaultCategories(){
 async function loadFromCloud(){
   try{
     setSyncStatus('syncing','Sincronizando...');
-    const rows=await sbGet('transactions','select=*&order=date.desc,created_at.desc');
+    const rows=await sbGet('transactions','select=*&order=date.desc,created_at.desc&limit=5000');
     txs=rows.map(rowToTx);
     localStorage.setItem('fd_txs_bk',JSON.stringify(txs));
     setSyncStatus('ok','Sincronizado ✓');
@@ -1125,7 +1125,7 @@ function startRealtime(){
     ws.onmessage=async(e)=>{
       const msg=JSON.parse(e.data);
       if(msg.event==='INSERT'||msg.event==='UPDATE'||msg.event==='DELETE'){
-        const rows=await sbGet('transactions','select=*&order=date.desc,created_at.desc');
+        const rows=await sbGet('transactions','select=*&order=date.desc,created_at.desc&limit=5000');
         txs=rows.map(rowToTx);
         localStorage.setItem('fd_txs_bk',JSON.stringify(txs));
         // Only render if launch screen is not open (avoid clearing active form)
@@ -2112,17 +2112,18 @@ async function deleteSub(catId,subId,type){
     {label:'Excluir',desc:'Esta ação não pode ser desfeita',cls:'cc-single',value:'ok'},
   ]);
   if(ok!=='ok')return;
-  // Only allow deleting subs from custom categories — not from defaults
-  const custList = type==='despesa' ? custD : custR;
-  const custCat = custList.find(c=>c.id===catId);
-  if(custCat){
-    custCat.subs = custCat.subs.filter(s=>s.id!==subId);
-    await updateCatInCloud(custCat);
-    renderCatTree();
-    return;
-  }
-  // B10: nao mexer em categorias padrao — bloquear com aviso claro
-  showToast('Subcategorias padrão não podem ser removidas','err');
+  // B21: verificar o flag def da própria sub — não da categoria-pai.
+  // Categorias padrão são seedadas no Supabase mas não entram em custD/custR,
+  // então checar custD/custR bloqueava subs customizadas (def:false) dentro delas.
+  const allCats=[...DEF_D,...DEF_R,...custD,...custR];
+  const cat=allCats.find(c=>c.id===catId);
+  const sub=cat?.subs?.find(s=>s.id===subId);
+  if(!sub){showToast('Subcategoria não encontrada','err');return;}
+  if(sub.def===true){showToast('Subcategorias padrão não podem ser removidas','err');return;}
+  // sub.def===false — permitir exclusão independente da categoria ser padrão ou custom
+  cat.subs=cat.subs.filter(s=>s.id!==subId);
+  await updateCatInCloud(cat);
+  renderCatTree();
 }
 
 // ═══════════════════════════════════════
