@@ -20,6 +20,7 @@
   --red:#ff4e6a;--rdim:rgba(255,78,106,.13);--rborder:rgba(255,78,106,.35);
   --blue:#4e9eff;--bdim:rgba(78,158,255,.13);--bborder:rgba(78,158,255,.35);
   --yellow:#ffd166;--ydim:rgba(255,209,102,.13);--yborder:rgba(255,209,102,.35);
+  --amber:#f59e0b;--adim:rgba(245,158,11,.13);--aborder:rgba(245,158,11,.35);
   --text:#eef0f8;--muted:#6b7a99;--muted2:#8892b0;
   --r:14px;--rs:10px;
 }
@@ -107,6 +108,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .b-fix{background:var(--ydim);color:var(--yellow);border:1px solid var(--yborder)}
 .b-rep{background:var(--bdim);color:var(--blue);border:1px solid var(--bborder)}
 .b-npag{background:var(--rdim);color:var(--red);border:1px solid var(--rborder)}
+.b-aconf{background:var(--adim);color:var(--amber);border:1px solid var(--aborder)}
 .tx-udot{width:13px;height:13px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:6px;font-weight:800;flex-shrink:0}
 .cat-suggest-chip{display:flex;align-items:center;gap:8px;margin-top:7px;background:var(--gdim);border:1px solid var(--gborder);border-radius:8px;padding:6px 10px;cursor:pointer;animation:chipIn .18s ease}
 @keyframes chipIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
@@ -532,6 +534,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <button class="f-pill" id="fNPago" onclick="setFilter('npago')">⏳ Não pagos</button>
     <button class="f-pill" id="fFixo" onclick="setFilter('fixo')">📌 Fixos</button>
     <button class="f-pill" id="fRepete" onclick="setFilter('repete')">🔁 Repete</button>
+    <button class="f-pill" id="fAConf" onclick="setFilter('aconf')">❓ A confirmar</button>
   </div>
   </div>
   <div class="tx-list" id="txList"></div>
@@ -770,6 +773,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       </div>
     </div>
     <div class="ls-row">
+      <span class="ls-row-ico">❓</span>
+      <div class="ls-row-content">
+        <span class="ls-row-lbl">A confirmar <span style="font-size:10px;color:var(--muted)">(verificar com Cláudia)</span></span>
+        <label class="toggle-sw"><input type="checkbox" id="tgAConf"><div class="toggle-track" style="--ck-color:var(--amber)"></div></label>
+      </div>
+    </div>
+    <div class="ls-row">
       <span class="ls-row-ico">📝</span>
       <div class="ls-row-content">
         <input type="text" class="ls-row-input" id="lsObs" placeholder="Observações">
@@ -931,6 +941,7 @@ function txToRow(tx){
     cat_id:tx.catId||null,sub_id:tx.subId||null,user_initial:tx.user,
     pago:tx.pago!==false,fixo:tx.fixo||false,
     repeat_tx:tx.repeat||false,repeat_unit:tx.repeatUnit||null,repeat_n:tx.repeatN||null,repeat_index:tx.repeatIndex||null,repeat_total:tx.repeatTotal||null,
+    a_confirmar:tx.aConfirmar||false,
   };
 }
 function rowToTx(row){
@@ -940,6 +951,7 @@ function rowToTx(row){
     catId:row.cat_id,subId:row.sub_id,user:row.user_initial,
     pago:row.pago,fixo:row.fixo,repeat:row.repeat_tx,
     repeatUnit:row.repeat_unit,repeatN:row.repeat_n,repeatIndex:row.repeat_index,repeatTotal:row.repeat_total,
+    aConfirmar:row.a_confirmar||false,
   };
 }
 
@@ -977,6 +989,7 @@ let custD=[];let custR=[];
 let curMonth=new Date().getMonth(),curYear=new Date().getFullYear();
 let catTab='despesa';
 let lsType='despesa',lsSelCatId=null,lsSelSubId=null,lsUser='E';
+let lsAConfirmar=false;
 let lsQuickDate='hoje',lsCustomDate='';
 let lsRepeatUnit='mensal',lsRepeatN=2;
 let editingTxId=null;
@@ -1145,13 +1158,13 @@ function startRealtime(){
 // ═══════════════════════════════════════
 function setFilter(f){
   activeFilter=f;
-  ['All','Rec','Desp','Pago','NPago','Fixo','Repete'].forEach(x=>{
+  ['All','Rec','Desp','Pago','NPago','Fixo','Repete','AConf'].forEach(x=>{
     const el=document.getElementById('f'+x);
     if(!el)return;
     el.className='f-pill';
   });
-  const map={all:'fAll',receita:'fRec',despesa:'fDesp',pago:'fPago',npago:'fNPago',fixo:'fFixo',repete:'fRepete'};
-  const activeClass={all:'active',receita:'active-r',despesa:'active-d',pago:'active',npago:'active',fixo:'active',repete:'active'};
+  const map={all:'fAll',receita:'fRec',despesa:'fDesp',pago:'fPago',npago:'fNPago',fixo:'fFixo',repete:'fRepete',aconf:'fAConf'};
+  const activeClass={all:'active',receita:'active-r',despesa:'active-d',pago:'active',npago:'active',fixo:'active',repete:'active',aconf:'active'};
   const el=document.getElementById(map[f]);
   if(el)el.className='f-pill '+activeClass[f];
   renderTxList();
@@ -1183,6 +1196,7 @@ function filterTxs(list){
     if(activeFilter==='npago'&&t.pago)return false;
     if(activeFilter==='fixo'&&!t.fixo)return false;
     if(activeFilter==='repete'&&!t.repeat)return false;
+    if(activeFilter==='aconf'&&!t.aConfirmar)return false;
     return true;
   });
 }
@@ -1229,6 +1243,7 @@ function renderTxList(){
       if(!t.pago)badges+='<span class="tx-badge b-npag">Não pago</span>';
       if(t.fixo){const fi=t.repeatIndex,ft=t.repeatTotal;badges+=`<span class="tx-badge b-fix">Fixo${fi&&ft?` ${fi}/${ft}`:''}</span>`;}
       if(t.repeat&&!t.fixo){const ri=t.repeatIndex,rt=t.repeatTotal;badges+=`<span class="tx-badge b-rep">Repete${ri&&rt?` ${ri}/${rt}`:''}</span>`;}
+      if(t.aConfirmar)badges+='<span class="tx-badge b-aconf">❓</span>';
       // FIX 1: onclick opens edit
       html+=`<div class="tx-item" onclick="openLaunch('${t.type}','${t.id}')">
         <div class="tx-ico" style="background:${bg}">${cat.icon}</div>
@@ -1443,6 +1458,7 @@ function openLaunch(type,txId){
   document.getElementById('tgPago').checked=tx?tx.pago:true;
   document.getElementById('tgFixo').checked=tx?tx.fixo:false;
   document.getElementById('tgRepetir').checked=tx?tx.repeat:false;
+  document.getElementById('tgAConf').checked=tx?(tx.aConfirmar||false):false;
   document.getElementById('repeatOpts').className='repeat-opts'+(tx&&tx.repeat?' show':'');
   // Restore repeat unit and count from saved transaction
   if(tx&&tx.repeatUnit){
@@ -1715,11 +1731,12 @@ function selectCatSub(cId,sId){
 function generateRecurringDates(startDate,unit,count){
   const dates=[];
   const d=new Date(startDate+'T12:00:00');
+  const origDay=d.getDate();
   for(let i=0;i<count;i++){
     dates.push(localDate(d));
     if(unit==='semanal')d.setDate(d.getDate()+7);
-    else if(unit==='mensal')d.setMonth(d.getMonth()+1);
-    else if(unit==='anual')d.setFullYear(d.getFullYear()+1);
+    else if(unit==='mensal'){d.setDate(1);d.setMonth(d.getMonth()+1);const lastDay=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();d.setDate(Math.min(origDay,lastDay));}
+    else if(unit==='anual'){d.setDate(1);d.setFullYear(d.getFullYear()+1);const lastDayY=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();d.setDate(Math.min(origDay,lastDayY));}
   }
   return dates;
 }
@@ -1754,6 +1771,7 @@ async function submitLaunch(){
     const pago=document.getElementById('tgPago').checked;
     const fixo=lsType==='despesa'?document.getElementById('tgFixo').checked:false;
     const repeat=document.getElementById('tgRepetir').checked;
+    const aConfirmar=document.getElementById('tgAConf').checked;
     const obs=document.getElementById('lsObs').value.trim();
     // Always read repeat count from the screen element
     const repeatN=parseInt(document.getElementById('repNum').textContent)||lsRepeatN;
@@ -1781,6 +1799,7 @@ async function submitLaunch(){
         type:lsType,amount,description:descFinal,
         obs,cat_id:lsSelCatId,sub_id:lsSelSubId||null,
         user_initial:lsUser,pago,fixo,repeat_tx:repeat,
+        a_confirmar:aConfirmar,
       };
       // B8: ao desligar Repetir, limpar explicitamente os campos de recorrencia.
       // (os ramos especificos abaixo sobrescrevem quando repeat/fixo continuam ativos)
@@ -1914,7 +1933,7 @@ async function submitLaunch(){
           id:uid(),group_id:groupId,type:lsType,amount,desc:descFinal,obs,date,
           catId:lsSelCatId,subId:lsSelSubId||null,user:lsUser,
           pago,fixo,repeat:true,repeatUnit:lsRepeatUnit,repeatN,
-          repeatIndex:i+1,repeatTotal:repeatN,
+          repeatIndex:i+1,repeatTotal:repeatN,aConfirmar,
         }));
         await sbPostBatch('transactions',rows);
         rows.forEach(r=>txs.push(rowToTx(r)));
@@ -1927,7 +1946,7 @@ async function submitLaunch(){
           id:uid(),group_id:groupId,type:lsType,amount,desc:descFinal,obs,date,
           catId:lsSelCatId,subId:lsSelSubId||null,user:lsUser,
           pago,fixo:true,repeat:false,
-          repeatIndex:i+1,repeatTotal:12,
+          repeatIndex:i+1,repeatTotal:12,aConfirmar,
         }));
         await sbPostBatch('transactions',rows);
         rows.forEach(r=>txs.push(rowToTx(r)));
@@ -1938,6 +1957,7 @@ async function submitLaunch(){
         const tx={
           id:uid(),group_id:groupId,type:lsType,amount,desc:descFinal,obs,date:baseDate,
           catId:lsSelCatId,subId:lsSelSubId||null,user:lsUser,pago,fixo:false,repeat:false,
+          aConfirmar,
         };
         await sbPost('transactions',txToRow(tx));
         txs.push(tx);
@@ -3157,10 +3177,32 @@ function renderPending(){
   const row=document.getElementById('pendingRow');
   const txt=document.getElementById('pendingTxt');
   if(!row||!txt)return;
-  if(!pending.length){row.style.display='none';return;}
-  const total=pending.reduce((a,x)=>a+x.amount,0);
-  txt.textContent='📌 '+fmt(total)+' em pendências ('+pending.length+' '+(pending.length===1?'item':'itens')+')';
-  row.style.display='flex';
+  if(!pending.length){row.style.display='none';} else {
+    const total=pending.reduce((a,x)=>a+x.amount,0);
+    txt.textContent='📌 '+fmt(total)+' em pendências ('+pending.length+' '+(pending.length===1?'item':'itens')+')';
+    row.style.display='flex';
+  }
+  // A confirmar row
+  const aconfList=getMonthTxs().filter(t=>t.aConfirmar);
+  let aconfRow=document.getElementById('aconfRow');
+  if(!aconfRow){
+    aconfRow=document.createElement('div');
+    aconfRow.id='aconfRow';
+    aconfRow.className='pending-row';
+    aconfRow.style.background='var(--adim)';
+    aconfRow.style.borderColor='var(--aborder)';
+    aconfRow.onclick=function(){showPage('home');setFilter('aconf');const el=document.getElementById('fAConf');if(el)el.scrollIntoView({block:'nearest',behavior:'smooth'});};
+    const sp=document.createElement('span');
+    sp.id='aconfTxt';
+    sp.className='pending-txt';
+    sp.style.color='var(--amber)';
+    aconfRow.appendChild(sp);
+    if(row.parentNode)row.parentNode.insertBefore(aconfRow,row.nextSibling);
+  }
+  const aconfTxt=document.getElementById('aconfTxt');
+  if(!aconfList.length){aconfRow.style.display='none';return;}
+  aconfTxt.textContent='❓ '+aconfList.length+' '+(aconfList.length===1?'lançamento':'lançamentos')+' a confirmar';
+  aconfRow.style.display='flex';
 }
 function goToPending(){
   showPage('home');
