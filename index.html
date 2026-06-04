@@ -472,6 +472,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .ana-btn:hover{opacity:.9}
 .ana-btn:active{transform:scale(.98)}
 .ana-btn:disabled{opacity:.4;cursor:not-allowed}
+.ana-free-range{display:none;background:var(--surf2);border:1px solid var(--border);border-radius:var(--rs);padding:12px;margin-bottom:12px;gap:10px;flex-direction:column}
+.ana-free-range.show{display:flex}
+.ana-free-range-row{display:flex;align-items:center;gap:8px}
+.ana-free-range-lbl{font-size:12px;color:var(--muted);width:32px;flex-shrink:0}
+.ana-free-inp{flex:1;background:var(--surf3);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;color:var(--text);font-family:'DM Sans',sans-serif;-webkit-appearance:none;appearance:none;outline:none}
+.ana-free-inp:focus{border-color:var(--blue)}
+.ana-free-err{font-size:11px;color:var(--red);display:none}
+.ana-free-err.show{display:block}
 </style>
 </head>
 <body>
@@ -679,6 +687,18 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <button class="ana-period-pill" id="anaPer3" onclick="setAnaPeriod(3)">3 meses</button>
       <button class="ana-period-pill" id="anaPer6" onclick="setAnaPeriod(6)">6 meses</button>
       <button class="ana-period-pill" id="anaPer12" onclick="setAnaPeriod(12)">12 meses</button>
+      <button class="ana-period-pill" id="anaPerFree" onclick="setAnaPeriodFree()">📅 Período livre</button>
+    </div>
+    <div class="ana-free-range" id="anaFreeRange">
+      <div class="ana-free-range-row">
+        <span class="ana-free-range-lbl">De</span>
+        <input type="month" class="ana-free-inp" id="anaFreeStart">
+      </div>
+      <div class="ana-free-range-row">
+        <span class="ana-free-range-lbl">Até</span>
+        <input type="month" class="ana-free-inp" id="anaFreeEnd">
+      </div>
+      <span class="ana-free-err" id="anaFreeErr">A data de início deve ser anterior ou igual ao fim.</span>
     </div>
     <button class="ana-btn" id="anaBtn" onclick="runAnalysis()">✨ Analisar meus gastos</button>
     <div id="anaResult"></div>
@@ -775,7 +795,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="ls-row">
       <span class="ls-row-ico">❓</span>
       <div class="ls-row-content">
-        <span class="ls-row-lbl">A confirmar <span style="font-size:10px;color:var(--muted)">(verificar com Cláudia)</span></span>
+        <span class="ls-row-lbl">A confirmar <span style="font-size:10px;color:var(--muted)">(pendente de confirmação)</span></span>
         <label class="toggle-sw"><input type="checkbox" id="tgAConf"><div class="toggle-track" style="--ck-color:var(--amber)"></div></label>
       </div>
     </div>
@@ -2886,25 +2906,61 @@ async function confirmAllImport(){
 //  ANÁLISE INTELIGENTE COM IA
 // ═══════════════════════════════════════
 let anaPeriodMonths = 1;
+let anaPeriodFree = false; // true when "Período livre" is active
 
 function openAnalysis(){
   document.getElementById('anaResult').innerHTML = '';
   document.getElementById('anaBtn').disabled = false;
   document.getElementById('analysisScreen').classList.add('open');
+  // Pre-fill free range inputs with the currently viewed month
+  const pad = n => String(n+1).padStart(2,'0');
+  const ym = curYear+'-'+pad(curMonth);
+  document.getElementById('anaFreeStart').value = ym;
+  document.getElementById('anaFreeEnd').value = ym;
 }
 function closeAnalysis(){ document.getElementById('analysisScreen').classList.remove('open'); }
 
 function setAnaPeriod(months){
   anaPeriodMonths = months;
+  anaPeriodFree = false;
+  document.getElementById('anaFreeRange').classList.remove('show');
+  document.getElementById('anaFreeErr').classList.remove('show');
   [1,3,6,12].forEach(m=>{
     const el = document.getElementById('anaPer'+m);
     if(el) el.className = 'ana-period-pill' + (m===months?' active':'');
   });
+  const freeEl = document.getElementById('anaPerFree');
+  if(freeEl) freeEl.className = 'ana-period-pill';
+  document.getElementById('anaBtn').textContent = '✨ Analisar meus gastos';
+}
+
+function setAnaPeriodFree(){
+  anaPeriodFree = true;
+  [1,3,6,12].forEach(m=>{
+    const el = document.getElementById('anaPer'+m);
+    if(el) el.className = 'ana-period-pill';
+  });
+  const freeEl = document.getElementById('anaPerFree');
+  if(freeEl) freeEl.className = 'ana-period-pill active';
+  document.getElementById('anaFreeRange').classList.add('show');
+  document.getElementById('anaFreeErr').classList.remove('show');
+  document.getElementById('anaBtn').textContent = '✨ Analisar período selecionado';
 }
 
 async function runAnalysis(){
   const btn = document.getElementById('anaBtn');
   const resEl = document.getElementById('anaResult');
+
+  // Validate free period if active
+  if(anaPeriodFree){
+    const startVal = document.getElementById('anaFreeStart').value;
+    const endVal   = document.getElementById('anaFreeEnd').value;
+    const errEl    = document.getElementById('anaFreeErr');
+    if(!startVal || !endVal){ errEl.classList.add('show'); return; }
+    if(startVal > endVal){ errEl.classList.add('show'); return; }
+    errEl.classList.remove('show');
+  }
+
   btn.disabled = true;
   resEl.innerHTML = `<div class="ana-loading"><span class="spin">🤖</span><div class="ana-loading-txt">Buscando dados atualizados...<br><span style="font-size:12px;color:var(--muted)">Isso pode levar alguns segundos</span></div></div>`;
   // Always refresh data before analysis to ensure accuracy
@@ -2912,10 +2968,39 @@ async function runAnalysis(){
 
   try {
     // Gather data for the selected period
-    const now = new Date();
+    // Anchor: use curMonth/curYear (the month being viewed), not system date
     const monthsData = [];
+
+    if(anaPeriodFree){
+      // Free period: iterate from start month to end month
+      const startVal = document.getElementById('anaFreeStart').value; // "YYYY-MM"
+      const endVal   = document.getElementById('anaFreeEnd').value;
+      const [sy,sm] = startVal.split('-').map(Number);
+      const [ey,em] = endVal.split('-').map(Number);
+      let yr=sy, mo=sm-1; // months are 0-indexed in JS Date
+      while(yr < ey || (yr===ey && mo <= em-1)){
+        const monthTxs = txs.filter(t=>{
+          const td = new Date(t.date+'T12:00:00');
+          return td.getMonth()===mo && td.getFullYear()===yr;
+        });
+        const inc = monthTxs.filter(t=>t.type==='receita').reduce((a,t)=>a+t.amount,0);
+        const exp = monthTxs.filter(t=>t.type==='despesa').reduce((a,t)=>a+t.amount,0);
+        const byCat = {};
+        monthTxs.filter(t=>t.type==='despesa').forEach(t=>{
+          const cat = findCat(t.type, t.catId);
+          const catName = cat?.name || 'Sem categoria';
+          if(!byCat[catName]) byCat[catName] = {total:0, items:[]};
+          byCat[catName].total += t.amount;
+          byCat[catName].items.push(t.desc||t.rawName||catName);
+        });
+        monthsData.push({month:MONTHS[mo]+' '+yr,receitas:inc,despesas:exp,saldo:inc-exp,categorias:byCat,totalTx:monthTxs.length});
+        mo++;
+        if(mo>11){mo=0;yr++;}
+      }
+    } else {
     for(let m = anaPeriodMonths - 1; m >= 0; m--){
-      const d = new Date(now.getFullYear(), now.getMonth() - m, 1);
+      // Use curYear/curMonth as anchor instead of system date
+      const d = new Date(curYear, curMonth - m, 1);
       const mo = d.getMonth(), yr = d.getFullYear();
       const monthTxs = txs.filter(t=>{
         const td = new Date(t.date+'T12:00:00');
@@ -2943,6 +3028,7 @@ async function runAnalysis(){
         totalTx: monthTxs.length,
       });
     }
+    } // end else (fixed period)
 
     // Build a rich prompt with the data
     const dataStr = monthsData.map(m=>{
@@ -2956,9 +3042,13 @@ Categorias de despesa:
 ${cats||'  (nenhuma despesa)'}`;
     }).join('\n\n');
 
+    const periodLabel = anaPeriodFree
+      ? `período de ${monthsData[0]?.month||''} a ${monthsData[monthsData.length-1]?.month||''}`
+      : (anaPeriodMonths===1 ? monthsData[0]?.month||'este mês' : `últimos ${anaPeriodMonths} meses`);
+
     const prompt = `Você é um consultor financeiro pessoal analisando os gastos de uma família brasileira: Elton, Cláudia e o filho Saulo.
 
-DADOS DOS ÚLTIMOS ${anaPeriodMonths} MÊS(ES):
+DADOS DO PERÍODO (${periodLabel}):
 ${dataStr}
 
 Faça uma análise COMPLETA e PERSONALIZADA em português, usando os dados reais acima. Seja específico com valores e nomes de categorias reais.
@@ -3030,17 +3120,21 @@ function exportPDF(){
   const today2 = new Date().toLocaleDateString('pt-BR');
   const pageW = 210;
 
-  // Header
+  // Header — brand bar top + dark background
+  doc.setFillColor(0,229,160);
+  doc.rect(0,0,pageW,3,'F');
   doc.setFillColor(13,15,20);
-  doc.rect(0,0,pageW,28,'F');
+  doc.rect(0,3,pageW,27,'F');
   doc.setTextColor(0,229,160);
   doc.setFontSize(20);doc.setFont('helvetica','bold');
-  doc.text('FinIop',14,13);
+  doc.text('FinIop',14,15);
   doc.setTextColor(180,190,210);
   doc.setFontSize(10);doc.setFont('helvetica','normal');
-  doc.text('Relatório Mensal — '+mthLabel,14,21);
+  doc.text('Relatório Mensal — '+mthLabel,14,23);
   doc.setFontSize(8);
-  doc.text('Gerado em '+today2,pageW-14,21,{align:'right'});
+  doc.text('Gerado em '+today2,pageW-14,23,{align:'right'});
+  doc.setDrawColor(0,229,160);doc.setLineWidth(0.4);
+  doc.line(14,27,pageW-14,27);
 
   // Summary cards
   let y=36;
@@ -3052,12 +3146,18 @@ function exportPDF(){
   const cw=(pageW-28)/3;
   cards.forEach((c,i)=>{
     const cx=14+i*cw;
+    // card bg with subtle color tint
     doc.setFillColor(30,35,51);
     doc.roundedRect(cx,y,cw-4,20,3,3,'F');
-    doc.setTextColor(107,122,153);doc.setFontSize(8);doc.setFont('helvetica','normal');
-    doc.text(c.label,cx+4,y+7);
-    doc.setTextColor(...c.color);doc.setFontSize(11);doc.setFont('helvetica','bold');
-    doc.text(c.value,cx+4,y+16);
+    // thin color accent line at top of each card
+    doc.setFillColor(...c.color);
+    doc.rect(cx,y,cw-4,1.2,'F');
+    // label in muted
+    doc.setTextColor(107,122,153);doc.setFontSize(7.5);doc.setFont('helvetica','normal');
+    doc.text(c.label,cx+4,y+8);
+    // value in card color
+    doc.setTextColor(...c.color);doc.setFontSize(12);doc.setFont('helvetica','bold');
+    doc.text(c.value,cx+4,y+17);
   });
 
   // Category ranking
@@ -3100,12 +3200,12 @@ function exportPDF(){
     const d=new Date(t.date+'T12:00:00');
     return[
       d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}),
-      (t.desc||cat.name).slice(0,30),
-      cat.name.slice(0,14)+(sub?' / '+sub.name.slice(0,10):''),
+      (t.desc||cat.name).slice(0,40),
+      cat.name.slice(0,18)+(sub?' / '+sub.name.slice(0,12):''),
       t.type==='receita'?'Receita':'Despesa',
       (t.type==='receita'?'+':'-')+' '+fmtPDF(t.amount),
       t.user||'E',
-      t.pago?'✓':'✗',
+      t.pago?'Sim':'Não',
     ];
   });
 
@@ -3118,8 +3218,8 @@ function exportPDF(){
     headStyles:{fillColor:[30,35,51],textColor:[107,122,153],fontStyle:'bold',fontSize:7},
     alternateRowStyles:{fillColor:[19,23,32]},
     columnStyles:{
-      0:{cellWidth:14},1:{cellWidth:52},2:{cellWidth:32},3:{cellWidth:16},
-      4:{cellWidth:24,halign:'right'},5:{cellWidth:8,halign:'center'},6:{cellWidth:8,halign:'center'}
+      0:{cellWidth:14},1:{cellWidth:54},2:{cellWidth:38},3:{cellWidth:16},
+      4:{cellWidth:24,halign:'right'},5:{cellWidth:9,halign:'center'},6:{cellWidth:11,halign:'center'}
     },
     margin:{left:14,right:14},
   });
