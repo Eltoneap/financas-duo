@@ -903,6 +903,19 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   </div>
 </div>
 
+<!-- SERIES PREVIEW / HOMOLOGAÇÃO MODAL -->
+<div class="cconfirm-overlay" id="spOverlay">
+  <div class="cconfirm-box" style="max-width:390px">
+    <div class="cconfirm-title" id="spTitle">Homologar série</div>
+    <div class="cconfirm-msg" id="spMsg"></div>
+    <div id="spList" style="max-height:46vh;overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;gap:6px;margin-bottom:16px"></div>
+    <div class="cconfirm-btns">
+      <button class="cconfirm-btn cc-all" id="spOk"><strong>Confirmar e salvar série</strong></button>
+      <button class="cconfirm-btn cc-cancel" id="spCancel"><strong>Cancelar</strong></button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ═══════════════════════════════════════
 //  SUPABASE
@@ -1005,6 +1018,16 @@ const fmt=v=>'R$ '+v.toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g
 function localDate(d=new Date()){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');return `${y}-${m}-${dd}`;}
 function today(){return localDate();}
 function yesterday(){const d=new Date();d.setDate(d.getDate()-1);return localDate(d);}
+// ═══ HELPER CENTRAL DE DATAS ═══ avança n meses (n pode ser negativo) com clamp ao último dia do mês destino
+function addMonths(date,n){
+  const d=new Date(date+'T12:00:00');
+  const origDay=d.getDate();
+  d.setDate(1);
+  d.setMonth(d.getMonth()+n);
+  const lastDay=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();
+  d.setDate(Math.min(origDay,lastDay));
+  return localDate(d);
+}
 function getSelDate(){if(lsQuickDate==='hoje')return today();if(lsQuickDate==='ontem')return yesterday();return lsCustomDate||today();}
 function getCats(t){return[...(t==='despesa'?DEF_D:DEF_R),...(t==='despesa'?custD:custR)];}
 function findCat(type,catId){
@@ -1038,6 +1061,41 @@ function customConfirm(title, msg, buttons){
   });
 }
 function setSyncStatus(s,t){const bar=document.getElementById('syncBar');const txt=document.getElementById('syncTxt');bar.className='sync-bar '+s;txt.textContent=t;}
+
+// Modal de homologação: lista read-only do estado final da série. Resolve true/false.
+function seriesPreview(title, msg, items){
+  return new Promise(resolve=>{
+    document.getElementById('spTitle').textContent=title;
+    document.getElementById('spMsg').textContent=msg;
+    const todayStr=today();
+    const list=document.getElementById('spList');
+    list.innerHTML=items.map(it=>{
+      const d=new Date(it.date+'T12:00:00');
+      const dateLbl=d.toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'2-digit'});
+      const isPast=it.date<todayStr;
+      const pf=isPast?'<span style="color:var(--muted);font-size:10px">passado</span>':'<span style="color:var(--blue);font-size:10px">futuro</span>';
+      const statusIco=it.pago?'✅':'⚪';
+      const aconf=it.aConfirmar?' ❓':'';
+      const clr=it.type==='despesa'?'var(--red)':'var(--green)';
+      const sign=it.type==='despesa'?'−':'+';
+      return `<div style="display:flex;align-items:center;justify-content:space-between;background:var(--surf2);border:1px solid var(--border);border-radius:10px;padding:9px 11px">
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <span style="font-size:13px;color:var(--text);font-weight:600">${it.idx}/${items.length} · ${dateLbl}</span>
+          ${pf}
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:13px;font-weight:700;color:${clr}">${sign} ${fmt(it.amount)}${aconf}</span>
+          <span style="font-size:14px">${statusIco}</span>
+        </div>
+      </div>`;
+    }).join('');
+    const ok=document.getElementById('spOk'), cancel=document.getElementById('spCancel');
+    const close=(v)=>{document.getElementById('spOverlay').classList.remove('open');ok.onclick=null;cancel.onclick=null;resolve(v);};
+    ok.onclick=()=>close(true);
+    cancel.onclick=()=>close(false);
+    document.getElementById('spOverlay').classList.add('open');
+  });
+}
 
 // ═══════════════════════════════════════
 //  FIX 4: Load/save custom categories from Supabase
@@ -1286,8 +1344,8 @@ function renderCharts(){
 function initPeriodDates(){
   const end=new Date();
   const start=new Date();
+  start.setDate(1);              // B24: dia 1 ANTES de mexer no mês (evita overflow)
   start.setMonth(start.getMonth()-11);
-  start.setDate(1);
   const ps=document.getElementById('periodStart');
   const pe=document.getElementById('periodEnd');
   if(ps&&!ps.value)ps.value=localDate(start);
@@ -1729,16 +1787,38 @@ function selectCatSub(cId,sId){
 //  RECURRENCE — generate all instances
 // ═══════════════════════════════════════
 function generateRecurringDates(startDate,unit,count){
+  // Toda a aritmética mensal/anual passa por addMonths (única fonte de verdade).
   const dates=[];
-  const d=new Date(startDate+'T12:00:00');
-  const origDay=d.getDate();
-  for(let i=0;i<count;i++){
-    dates.push(localDate(d));
-    if(unit==='semanal')d.setDate(d.getDate()+7);
-    else if(unit==='mensal'){d.setDate(1);d.setMonth(d.getMonth()+1);const lastDay=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();d.setDate(Math.min(origDay,lastDay));}
-    else if(unit==='anual'){d.setDate(1);d.setFullYear(d.getFullYear()+1);const lastDayY=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();d.setDate(Math.min(origDay,lastDayY));}
+  if(unit==='semanal'){
+    const d=new Date(startDate+'T12:00:00');
+    for(let i=0;i<count;i++){dates.push(localDate(d));d.setDate(d.getDate()+7);}
+  } else if(unit==='anual'){
+    for(let i=0;i<count;i++)dates.push(addMonths(startDate,i*12));
+  } else { // mensal (default)
+    for(let i=0;i<count;i++)dates.push(addMonths(startDate,i));
   }
   return dates;
+}
+
+// ═══ HELPER CENTRAL DE SÉRIE ═══ reindexa membros restantes (B25); colapsa para simples se sobrar 1 (B3)
+async function reindexSeries(groupId){
+  if(!groupId)return;
+  let rows;
+  try{ rows=await sbGet('transactions',`group_id=eq.${groupId}&select=*&order=date.asc,created_at.asc`); }
+  catch(e){ return; }
+  if(!rows||!rows.length)return;
+  if(rows.length===1){
+    // Sobrou 1 → deixa de ser série: limpa flags de recorrência/fixo (group_id permanece)
+    await sbPatch('transactions',rows[0].id,{
+      repeat_tx:false,fixo:false,repeat_unit:null,repeat_n:null,
+      repeat_index:null,repeat_total:null
+    });
+    return;
+  }
+  const k=rows.length;
+  for(let i=0;i<k;i++){
+    await sbPatch('transactions',rows[i].id,{repeat_index:i+1,repeat_total:k});
+  }
 }
 
 // Unique ID — uses timestamp + random suffix to avoid collisions in batch
@@ -1779,148 +1859,83 @@ async function submitLaunch(){
 
     if(editingTxId){
       const tx=txs.find(t=>t.id===editingTxId);
-      const siblings=txs.filter(t=>t.group_id&&tx&&t.group_id===tx.group_id&&t.id!==editingTxId);
-      // Ask if user wants to update just this or all in series
-      let updateAll=false;
-      if(siblings.length>0){
-        const editChoice=await customConfirm(
-          'Atualizar lançamento da série',
-          `Este lançamento faz parte de uma série de ${siblings.length+1}. O que deseja atualizar?`,
-          [
-            {label:'Cancelar',desc:'Não altera nada',cls:'cc-cancel',value:'cancel'},
-            {label:'Somente este',desc:'Os demais da série permanecem inalterados',cls:'cc-single',value:'single'},
-            {label:'Todos da série',desc:'Atualiza valor, categoria e descrição em toda a série',cls:'cc-all',value:'all'},
-          ]
-        );
-        if(editChoice==='cancel'){btn.disabled=false;btn.className='btn-save '+(lsType==='despesa'?'red':'grn');btn.textContent=editingTxId?'Salvar alterações':'Salvar';return;}
-        updateAll=(editChoice==='all');
-      }
-      const updated={
-        type:lsType,amount,description:descFinal,
-        obs,cat_id:lsSelCatId,sub_id:lsSelSubId||null,
-        user_initial:lsUser,pago,fixo,repeat_tx:repeat,
-        a_confirmar:aConfirmar,
-      };
-      // B8: ao desligar Repetir, limpar explicitamente os campos de recorrencia.
-      // (os ramos especificos abaixo sobrescrevem quando repeat/fixo continuam ativos)
-      if(repeat){
-        updated.repeat_unit=lsRepeatUnit;
-        updated.repeat_n=repeatN;
+      const localGroup = tx && tx.group_id ? txs.filter(t=>t.group_id===tx.group_id) : (tx?[tx]:[]);
+      const wasSeriesLocal = localGroup.length>1;
+
+      // Forma final desejada (precedência: repeat > fixo > simples)
+      let targetN, targetUnit;
+      if(repeat){ targetN=repeatN; targetUnit=lsRepeatUnit; }
+      else if(fixo){ targetN=12; targetUnit='mensal'; }
+      else { targetN=1; targetUnit=null; }
+
+      if(!wasSeriesLocal && targetN===1){
+        // FAST PATH: lançamento simples que continua simples → patch direto
+        const patch={
+          type:lsType,amount,description:descFinal,obs,
+          cat_id:lsSelCatId,sub_id:lsSelSubId||null,user_initial:lsUser,
+          pago,fixo:false,repeat_tx:false,a_confirmar:aConfirmar,
+          repeat_unit:null,repeat_n:null,repeat_index:null,repeat_total:null,
+          date:baseDate
+        };
+        await sbPatch('transactions',editingTxId,patch);
+        const idx=txs.findIndex(t=>t.id===editingTxId);
+        if(idx>=0)txs[idx]={...txs[idx],...rowToTx({id:editingTxId,group_id:tx?.group_id||editingTxId,...patch}),desc:descFinal};
+        showToast('✅ Lançamento atualizado!','ok');
       } else {
-        updated.repeat_unit=null;
-        updated.repeat_n=null;
-        updated.repeat_index=null;
-        updated.repeat_total=null;
-      }
-      if(updateAll&&tx?.group_id){
-        // Update all siblings keeping their original dates and indices
-        // If new repeatN < old series size, delete extra ones
-        const allInGroup=txs.filter(t=>t.group_id===tx.group_id).sort((a,b)=>a.date.localeCompare(b.date));
-        let keep, remove;
-        if(repeatN>=allInGroup.length){
-          // Nao reduz a serie: mantem todos
-          keep=allInGroup; remove=[];
-        } else {
-          // B9: ao reduzir N, preservar o lancamento editado e os mais proximos a ele,
-          // nunca deletar cegamente os mais antigos.
-          const editIdx=allInGroup.findIndex(t=>t.id===editingTxId);
-          const anchor=editIdx>=0?editIdx:0;
-          let start=Math.min(anchor, allInGroup.length-repeatN);
-          if(start<0)start=0;
-          keep=allInGroup.slice(start,start+repeatN);
-          remove=allInGroup.filter(t=>!keep.includes(t));
+        // ═══════════════ REPLACE PATTERN ═══════════════
+        // 1) Buscar membros reais do grupo no Supabase (fonte autoritativa)
+        let priorList=[];
+        try{
+          const dbRows=await sbGet('transactions',`group_id=eq.${tx.group_id}&select=*&order=date.asc,created_at.asc`);
+          priorList=dbRows.map(rowToTx).sort((a,b)=>a.date.localeCompare(b.date));
+        }catch(e){
+          priorList=localGroup.slice().sort((a,b)=>a.date.localeCompare(b.date));
         }
-        // B9: avisar antes de operacao destrutiva
-        if(remove.length>0){
-          const okDel=await customConfirm(
-            'Reduzir a série',
-            `Esta alteração vai apagar ${remove.length} lançamento(s) da série que ficaram de fora do novo total de ${repeatN}. Deseja continuar?`,
-            [
-              {label:'Cancelar',desc:'Mantém a série como está',cls:'cc-cancel',value:'cancel'},
-              {label:'Continuar',desc:'Apaga os excedentes e atualiza o restante',cls:'cc-future',value:'ok'},
-            ]
-          );
-          if(okDel!=='ok'){return;}
-          for(const t of remove){
-            await sbDelete('transactions',t.id);
-            txs=txs.filter(x=>x.id!==t.id);
-          }
-        }
-        // Update kept ones
-        for(let i=0;i<keep.length;i++){
-          const patch={...updated,date:keep[i].date,repeat_index:i+1,repeat_total:Math.min(repeatN,keep.length)};
-          await sbPatch('transactions',keep[i].id,patch);
-          const idx=txs.findIndex(t=>t.id===keep[i].id);
-          if(idx>=0)txs[idx]={...txs[idx],...rowToTx({...keep[i],...patch,description:descFinal}),desc:descFinal};
-        }
-        showToast(`✅ Série atualizada (${Math.min(repeatN,keep.length)} lançamentos)!`,'ok');
-      } else {
-        // Update only this one, keep date unchanged
-        // B4: conversao para Despesa Fixa (REPETE->FIXO ou simples->FIXO)
-        const wasFixo = !!tx?.fixo;
-        if(fixo && !wasFixo){
-          // Apaga eventuais siblings da serie antiga (REPETE) — exceto o atual
-          const oldSiblings=txs.filter(t=>t.group_id&&tx&&t.group_id===tx.group_id&&t.id!==editingTxId);
-          for(const s of oldSiblings){
-            await sbDelete('transactions',s.id);
-            txs=txs.filter(x=>x.id!==s.id);
-          }
-          // Converte o lancamento atual em fixo 1/12
-          const fixGroupId='g_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
-          const patchFix={...updated,date:baseDate,group_id:fixGroupId,
-            fixo:true,repeat_tx:false,repeat_unit:null,repeat_n:null,
-            repeat_index:1,repeat_total:12};
-          await sbPatch('transactions',editingTxId,patchFix);
-          const fIdx=txs.findIndex(t=>t.id===editingTxId);
-          if(fIdx>=0)txs[fIdx]={...txs[fIdx],...rowToTx({id:editingTxId,...patchFix,description:descFinal}),desc:descFinal};
-          // Cria os 11 meses futuros
-          const fixDates=generateRecurringDates(baseDate,'mensal',12).slice(1);
-          const fixRows=fixDates.map((date,i)=>txToRow({
-            id:uid(),group_id:fixGroupId,type:lsType,amount,desc:descFinal,obs,date,
+        if(!priorList.length && tx) priorList=[tx];
+        const wasSeries = priorList.length>1;
+
+        // 2) Âncora: data do 1º membro existente (série) ou data do formulário (simples→série)
+        const anchorDate = wasSeries ? priorList[0].date : baseDate;
+        const dates = targetN===1 ? [anchorDate] : generateRecurringDates(anchorDate,targetUnit,targetN);
+
+        // 3) Montar novos registros — preservando pago/obs/a_confirmar por posição
+        const newGroupId='g_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
+        const newTxs = dates.map((date,i)=>{
+          const prior = i<priorList.length ? priorList[i] : null;
+          return {
+            id:uid(),group_id:newGroupId,type:lsType,amount,desc:descFinal,
+            obs: prior ? (prior.obs||'') : obs,
+            date,
             catId:lsSelCatId,subId:lsSelSubId||null,user:lsUser,
-            pago:false,fixo:true,repeat:false,
-            repeatIndex:i+2,repeatTotal:12,
-          }));
-          await sbPostBatch('transactions',fixRows);
-          fixRows.forEach(r=>txs.push(rowToTx(r)));
-          showToast('✅ Convertido em despesa fixa (12 meses)!','ok');
-          localStorage.setItem('fd_txs_bk',JSON.stringify(txs));
-          closeLaunch();render();
-          return;
-        }
-        // B2 fix: se repeat foi ATIVADO num lançamento simples (sem série), criar os futuros
-        // wasSimple: o lançamento original NÃO tinha repeat ativo (independente de siblings)
-        const wasSimple = !tx?.repeat;
-        if(repeat && wasSimple){
-          // Criar série a partir deste lançamento
-          const newGroupId='g_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
-          // Patch no lançamento atual: vira repeat_index 1
-          const patch1={...updated,date:baseDate,group_id:newGroupId,repeat_tx:true,
-            repeat_unit:lsRepeatUnit,repeat_n:repeatN,repeat_index:1,repeat_total:repeatN};
-          await sbPatch('transactions',editingTxId,patch1);
-          const idx=txs.findIndex(t=>t.id===editingTxId);
-          if(idx>=0)txs[idx]={...txs[idx],...rowToTx({id:editingTxId,...patch1,description:descFinal}),desc:descFinal};
-          // Criar os lançamentos futuros (índices 2..N)
-          if(repeatN>1){
-            const allDates=generateRecurringDates(baseDate,lsRepeatUnit,repeatN);
-            const futureDates=allDates.slice(1); // pula o primeiro (já existe)
-            const rows=futureDates.map((date,i)=>txToRow({
-              id:uid(),group_id:newGroupId,type:lsType,amount,desc:descFinal,obs,date,
-              catId:lsSelCatId,subId:lsSelSubId||null,user:lsUser,
-              pago:false,fixo,repeat:true,repeatUnit:lsRepeatUnit,repeatN,
-              repeatIndex:i+2,repeatTotal:repeatN,
-            }));
-            await sbPostBatch('transactions',rows);
-            rows.forEach(r=>txs.push(rowToTx(r)));
-          }
-          showToast(`✅ Série criada: ${repeatN} lançamentos!`,'ok');
-        } else {
-          const patch={...updated,date:baseDate};
-          await sbPatch('transactions',editingTxId,patch);
-          const idx=txs.findIndex(t=>t.id===editingTxId);
-          if(idx>=0)txs[idx]={...txs[idx],...rowToTx({id:editingTxId,group_id:tx?.group_id||editingTxId,...patch,description:descFinal}),desc:descFinal};
-          showToast('✅ Lançamento atualizado!','ok');
-        }
+            pago: prior ? prior.pago : (i===0?pago:false),
+            fixo: !!fixo, repeat: !!repeat,
+            repeatUnit: repeat?targetUnit:null, repeatN: repeat?targetN:null,
+            repeatIndex: targetN>1?i+1:null, repeatTotal: targetN>1?targetN:null,
+            aConfirmar: prior ? prior.aConfirmar : aConfirmar,
+          };
+        });
+
+        // 4) Homologação (preview read-only de TODOS os lançamentos)
+        const okPreview = await seriesPreview(
+          'Homologar série',
+          `Resultado final: ${newTxs.length} lançamento(s). As datas seguem o 1º lançamento. Pago, observação e ❓ de cada item já existente são preservados.`,
+          newTxs.map((r,i)=>({idx:i+1,date:r.date,amount:r.amount,type:r.type,pago:r.pago,aConfirmar:r.aConfirmar}))
+        );
+        if(!okPreview){ return; }
+
+        // 5) ATOMICIDADE: insert primeiro; delete dos antigos só após sucesso
+        setSyncStatus('syncing','Salvando série...');
+        const rowsToInsert = newTxs.map(txToRow);
+        await sbPostBatch('transactions',rowsToInsert);
+        await sbDeleteMany('transactions',tx.group_id); // o novo group_id não é afetado
+
+        // 6) Estado local
+        const oldIds=new Set(priorList.map(m=>m.id));
+        if(tx) oldIds.add(tx.id);
+        txs=txs.filter(t=>!oldIds.has(t.id));
+        rowsToInsert.forEach(r=>txs.push(rowToTx(r)));
+        setSyncStatus('ok','Sincronizado ✓');
+        showToast(`✅ Série salva: ${newTxs.length} lançamento(s)!`,'ok');
       }
     } else {
       // CREATE — build all rows first, then batch insert in one call
@@ -2030,20 +2045,17 @@ async function deleteCurrentTx(){
       showToast(`🗑 ${toDelete.length} lançamento(s) excluído(s)`,'ok');
     }
 
-    // B3: se a serie ficou com apenas 1 membro, ele deixa de ser serie —
-    // limpa as flags de recorrencia/fixo para nao exibir badge fantasma "1/X".
+    // B25 + B3: reindexa os irmãos restantes no banco (e colapsa p/ simples se sobrar 1)
     if(tx.group_id){
-      const restantes=txs.filter(t=>t.group_id===tx.group_id);
+      await reindexSeries(tx.group_id);
+      // Espelha o resultado no estado local (o Realtime também reconcilia depois)
+      const restantes=txs.filter(t=>t.group_id===tx.group_id).sort((a,b)=>a.date.localeCompare(b.date));
       if(restantes.length===1){
         const lone=restantes[0];
-        if(lone.repeat||lone.fixo||lone.repeatIndex||lone.repeatTotal){
-          await sbPatch('transactions',lone.id,{
-            repeat_tx:false,fixo:false,repeat_unit:null,repeat_n:null,
-            repeat_index:null,repeat_total:null
-          });
-          const li=txs.findIndex(t=>t.id===lone.id);
-          if(li>=0)txs[li]={...txs[li],repeat:false,fixo:false,repeatUnit:null,repeatN:null,repeatIndex:null,repeatTotal:null};
-        }
+        const li=txs.findIndex(t=>t.id===lone.id);
+        if(li>=0)txs[li]={...txs[li],repeat:false,fixo:false,repeatUnit:null,repeatN:null,repeatIndex:null,repeatTotal:null};
+      } else if(restantes.length>1){
+        restantes.forEach((m,i)=>{const li=txs.findIndex(t=>t.id===m.id);if(li>=0)txs[li]={...txs[li],repeatIndex:i+1,repeatTotal:restantes.length};});
       }
     }
 
@@ -2835,12 +2847,8 @@ async function confirmAllImport(){
         const groupId = 'g_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
         const startDate = item.date;
         // If current installment is not 1, go back to figure out the first date
-        const firstDate = (() => {
-          const d = new Date(startDate+'T12:00:00');
-          const offset = (item.installmentCurrent||1) - 1;
-          d.setMonth(d.getMonth() - offset);
-          return localDate(d);
-        })();
+        const offset = (item.installmentCurrent||1) - 1;
+        const firstDate = addMonths(startDate, -offset); // B23: clamp via addMonths
         const dates = generateRecurringDates(firstDate, 'mensal', item.installmentTotal);
         dates.forEach((date, i) => {
           rows.push(txToRow({
