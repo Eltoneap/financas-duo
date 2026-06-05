@@ -492,6 +492,93 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .ana-free-inp:focus{border-color:var(--blue)}
 .ana-free-err{font-size:11px;color:var(--red);display:none}
 .ana-free-err.show{display:block}
+
+/* ── U8: user filter dropdown ── */
+.user-filter-btn{border:1px solid var(--border);background:var(--surf2);color:var(--muted2);border-radius:14px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:.3px;transition:all .2s;flex-shrink:0}
+.user-filter-btn:hover{border-color:var(--blue);color:var(--text)}
+.user-filter-btn.uf-e{background:var(--gdim);border-color:var(--gborder);color:var(--green)}
+.user-filter-btn.uf-c{background:rgba(107,122,153,.15);border-color:rgba(107,122,153,.4);color:var(--muted2)}
+.user-filter-btn.uf-s{background:var(--bdim);border-color:var(--bborder);color:var(--blue)}
+.user-filter-dropdown{position:absolute;right:14px;top:calc(100% + 4px);background:var(--surf2);border:1px solid var(--border);border-radius:var(--rs);z-index:50;min-width:140px;box-shadow:0 8px 24px rgba(0,0,0,.4);overflow:hidden;animation:fadeInUp .15s ease}
+.ufd-item{display:flex;align-items:center;gap:9px;padding:10px 13px;cursor:pointer;font-size:13px;font-weight:500;transition:background .15s}
+.ufd-item:hover{background:var(--surf3)}
+.ufd-item.active{color:var(--text)}
+.user-filter-banner{display:none;align-items:center;gap:6px;margin:0 14px 10px;padding:7px 12px;border-radius:var(--rs);font-size:12px;font-weight:500;border:1px solid}
+.user-filter-banner.show{display:flex}
+.user-filter-banner.uf-e{background:var(--gdim);border-color:var(--gborder);color:var(--green)}
+.user-filter-banner.uf-c{background:rgba(107,122,153,.1);border-color:rgba(107,122,153,.3);color:var(--muted2)}
+.user-filter-banner.uf-s{background:var(--bdim);border-color:var(--bborder);color:var(--blue)}
+
+/* ── U9: PIN lock screen ── */
+.pin-lock{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;padding:40px 30px}
+.pin-lock-logo{font-size:42px;margin-bottom:-8px}
+.pin-lock-title{font-weight:800;font-size:22px;background:linear-gradient(135deg,var(--green),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.pin-lock-sub{font-size:13px;color:var(--muted);margin-top:-20px;text-align:center}
+.pin-dots{display:flex;gap:14px;margin:4px 0}
+.pin-dot{width:16px;height:16px;border-radius:50%;border:2px solid var(--border);background:transparent;transition:all .2s}
+.pin-dot.filled{background:var(--green);border-color:var(--green)}
+.pin-inputs{display:flex;gap:12px}
+.pin-input{width:54px;height:64px;background:var(--surf2);border:1px solid var(--border);border-radius:var(--r);font-size:28px;font-weight:800;color:var(--text);text-align:center;outline:none;font-family:'DM Sans',sans-serif;-webkit-text-security:disc;transition:border-color .2s;caret-color:transparent}
+.pin-input:focus{border-color:var(--green)}
+.pin-error{font-size:13px;color:var(--red);min-height:18px;text-align:center}
+.pin-enter-btn{width:100%;max-width:280px;padding:14px;border:none;border-radius:var(--rs);background:linear-gradient(135deg,var(--green),var(--blue));color:#0d0f14;font-weight:800;font-size:16px;cursor:pointer;transition:opacity .2s;font-family:'DM Sans',sans-serif}
+.pin-enter-btn:active{opacity:.8}
+
+/* ── U9: settings modal ── */
+/* U9: avatar menu (replaces settings-btn) */
+.avatar-menu-wrap{position:relative}
+.avatar-menu{position:absolute;right:0;top:calc(100% + 8px);background:var(--surf2);border:1px solid var(--border);border-radius:var(--r);z-index:500;min-width:180px;box-shadow:0 8px 28px rgba(0,0,0,.5);overflow:hidden;animation:fadeInUp .15s ease}
+.av-menu-item{display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer;font-size:13px;font-weight:500;color:var(--text);transition:background .15s;border:none;background:none;width:100%;text-align:left;font-family:'DM Sans',sans-serif}
+.av-menu-item:hover{background:var(--surf3)}
+.av-menu-item.active-user{font-weight:700}
+.av-menu-sep{height:1px;background:var(--border);margin:4px 0}
+.av-menu-item.pin-action{color:var(--muted2)}
+.av-menu-item.pin-deactivate{color:var(--red)}
+.overlay-settings{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:8000;display:none;align-items:flex-end;justify-content:center}
+.overlay-settings.open{display:flex}
+.settings-box{background:var(--surf);border-radius:var(--r) var(--r) 0 0;width:100%;max-width:430px;padding:24px 20px 36px;animation:fadeInUp .2s ease}
+.settings-ttl{font-size:17px;font-weight:800;margin-bottom:4px}
+.settings-sub{font-size:12px;color:var(--muted);margin-bottom:20px}
+.settings-section{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:10px;font-weight:600}
+.settings-pin-inputs{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.settings-pin-inp{flex:1;background:var(--surf2);border:1px solid var(--border);border-radius:var(--rs);padding:12px;font-size:20px;font-weight:700;color:var(--text);text-align:center;outline:none;font-family:'DM Sans',sans-serif;-webkit-text-security:disc;letter-spacing:4px;-webkit-appearance:none}
+.settings-pin-inp:focus{border-color:var(--green)}
+.settings-hint{font-size:11px;color:var(--muted);margin-bottom:16px;line-height:1.5}
+.settings-pin-actions{display:flex;gap:8px;margin-bottom:8px}
+.settings-save-btn{flex:1;padding:12px;border:none;border-radius:var(--rs);background:var(--green);color:#0d0f14;font-weight:700;font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif}
+.settings-save-btn:active{opacity:.8}
+.settings-remove-btn{padding:12px 16px;border:none;border-radius:var(--rs);background:var(--rdim);color:var(--red);border:1px solid var(--rborder);font-weight:700;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif}
+.settings-remove-btn:active{opacity:.8}
+.settings-close-btn{width:100%;padding:12px;border:none;border-radius:var(--rs);background:var(--surf3);color:var(--muted2);font-weight:600;font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:8px}
+
+/* ── T1: fixed expiring modal ── */
+.fix-alert-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:8500;display:none;align-items:flex-end;justify-content:center;padding-bottom:env(safe-area-inset-bottom)}
+.fix-alert-overlay.open{display:flex}
+.fix-alert-box{background:var(--surf);border-radius:var(--r) var(--r) 0 0;width:100%;max-width:430px;max-height:82vh;display:flex;flex-direction:column;padding:20px 20px 24px;animation:fadeInUp .22s ease}
+.fix-alert-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;flex-shrink:0}
+.fix-alert-ttl{font-size:16px;font-weight:800;color:var(--text)}
+.fix-alert-sub{font-size:12px;color:var(--muted);margin-bottom:14px;flex-shrink:0}
+.fix-alert-list{overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.fix-item{background:var(--surf2);border:1px solid var(--border);border-radius:var(--rs);padding:12px 13px;display:flex;align-items:center;gap:10px}
+.fix-item-left{flex:1;min-width:0}
+.fix-item-lvl{font-size:16px;flex-shrink:0}
+.fix-item-name{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fix-item-meta{font-size:11px;color:var(--muted);margin-top:2px}
+.fix-item-amt{font-weight:700;font-size:13px;color:var(--red);white-space:nowrap;margin-right:8px;flex-shrink:0}
+.fix-renew-btn{border:none;border-radius:8px;padding:7px 11px;font-size:12px;font-weight:700;background:var(--gdim);color:var(--green);border:1px solid var(--gborder);cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif;flex-shrink:0;transition:opacity .2s}
+.fix-renew-btn:active{opacity:.7}
+.fix-ai-area{background:var(--surf2);border:1px solid var(--border);border-radius:var(--rs);padding:12px;margin-bottom:10px;flex-shrink:0;display:none}
+.fix-ai-area.show{display:block}
+.fix-ai-loading{text-align:center;padding:14px 0;color:var(--muted);font-size:13px}
+.fix-ai-result{font-size:13px;line-height:1.65;color:var(--muted2);white-space:pre-wrap;word-break:break-word}
+.fix-ai-result strong{color:var(--text)}
+.fix-alert-btns{display:flex;flex-direction:column;gap:7px;flex-shrink:0}
+.fix-btn-ai{width:100%;padding:12px;border:none;border-radius:var(--rs);background:linear-gradient(135deg,rgba(78,158,255,.15),rgba(0,229,160,.15));color:var(--blue);border:1px solid rgba(78,158,255,.3);font-weight:700;font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity .2s}
+.fix-btn-ai:active{opacity:.7}
+.fix-btn-ai:disabled{opacity:.4;cursor:not-allowed}
+.fix-btn-row{display:flex;gap:8px}
+.fix-btn-ignore{flex:1;padding:11px;border:none;border-radius:var(--rs);background:var(--ydim);color:var(--yellow);border:1px solid var(--yborder);font-weight:600;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif}
+.fix-btn-close{flex:1;padding:11px;border:none;border-radius:var(--rs);background:var(--surf3);color:var(--muted2);font-weight:600;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif}
 </style>
 </head>
 <body>
@@ -506,9 +593,26 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <div class="hdr">
   <div class="hdr-row">
     <div class="app-name">💸 FinIop</div>
-    <div class="user-pill" onclick="toggleUser()">
-      <div class="av av-e" id="hdrAv">E</div>
-      <span id="hdrName">Elton</span>
+    <div class="avatar-menu-wrap" id="avatarMenuWrap">
+      <div class="user-pill" onclick="toggleAvatarMenu()">
+        <div class="av av-e" id="hdrAv">E</div>
+        <span id="hdrName">Elton</span>
+      </div>
+      <!-- U9: avatar dropdown menu -->
+      <div class="avatar-menu" id="avatarMenu" style="display:none">
+        <button class="av-menu-item active-user" id="avMenuE" onclick="selectAvatarUser('E')">
+          <div class="av av-e" style="width:22px;height:22px;font-size:9px">E</div> Elton
+        </button>
+        <button class="av-menu-item" id="avMenuC" onclick="selectAvatarUser('C')">
+          <div class="av av-c" style="width:22px;height:22px;font-size:9px">C</div> Cláudia
+        </button>
+        <button class="av-menu-item" id="avMenuS" onclick="selectAvatarUser('S')">
+          <div class="av av-s" style="width:22px;height:22px;font-size:9px">S</div> Saulo
+        </button>
+        <div class="av-menu-sep"></div>
+        <button class="av-menu-item pin-action" id="avMenuPinSet" onclick="openPinModal()">🔐 Ativar PIN</button>
+        <button class="av-menu-item pin-deactivate" id="avMenuPinOff" onclick="deactivatePin()" style="display:none">🔓 Desativar PIN</button>
+      </div>
     </div>
   </div>
 </div>
@@ -533,11 +637,34 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div class="sum-item"><div class="sum-item-lbl">📉 Despesas</div><div class="sum-item-val c-r" id="totExp">R$ 0,00</div></div>
     </div>
   </div>
+  <!-- U8: user filter banner -->
+  <div class="user-filter-banner" id="userFilterBanner"></div>
   <div class="act">
     <button class="btn-add btn-r" onclick="openLaunch('receita',null)">+ Receita</button>
     <button class="btn-add btn-d" onclick="openLaunch('despesa',null)">− Despesa</button>
   </div>
-  <div class="sec-lbl sec-lbl-row"><span>Lançamentos</span><button class="sort-toggle" id="sortToggle" onclick="toggleSort()">↕ Valor</button></div>
+  <div class="sec-lbl sec-lbl-row" style="position:relative">
+    <span>Lançamentos</span>
+    <div style="display:flex;align-items:center;gap:6px">
+      <button class="user-filter-btn" id="userFilterBtn" onclick="toggleUserFilterDropdown()">👤 Todos</button>
+      <button class="sort-toggle" id="sortToggle" onclick="toggleSort()">↕ Valor</button>
+    </div>
+    <!-- U8: dropdown -->
+    <div class="user-filter-dropdown" id="userFilterDropdown" style="display:none">
+      <div class="ufd-item" onclick="setUserFilter('all')">
+        <span>👥</span><span>Todos</span>
+      </div>
+      <div class="ufd-item" onclick="setUserFilter('E')">
+        <div class="av av-e" style="width:20px;height:20px;font-size:9px">E</div><span>Elton</span>
+      </div>
+      <div class="ufd-item" onclick="setUserFilter('C')">
+        <div class="av av-c" style="width:20px;height:20px;font-size:9px">C</div><span>Cláudia</span>
+      </div>
+      <div class="ufd-item" onclick="setUserFilter('S')">
+        <div class="av av-s" style="width:20px;height:20px;font-size:9px">S</div><span>Saulo</span>
+      </div>
+    </div>
+  </div>
   <!-- SEARCH BAR + FILTERS sticky -->
   <div class="search-sticky">
   <div class="search-bar">
@@ -1050,6 +1177,8 @@ let searchQuery='';
 let sortMode='default'; // U10: 'default' | 'value'
 let searchMode='desc'; // U11: 'desc' | 'cat' | 'value'
 let newCatType='despesa',newSubForCatId=null;
+let activeUserFilter='all'; // U8: filtro por usuário
+let _fixAlertData=[]; // T1: cache das despesas encerrando
 let nctSelEmoji='📦',nscSelEmoji='📌';
 
 // ═══════════════════════════════════════
@@ -1077,7 +1206,7 @@ function findCat(type,catId){
   return getCats(type).find(c=>c.id===catId)||getCats(type==='despesa'?'receita':'despesa').find(c=>c.id===catId)||{icon:'📦',name:'Sem categoria'};
 }
 function findSub(cat,subId){return cat?.subs?.find(s=>s.id===subId);}
-function changeMonth(d){curMonth+=d;if(curMonth>11){curMonth=0;curYear++;}if(curMonth<0){curMonth=11;curYear--;}sortMode='default';searchMode='desc';searchQuery='';const _si=document.getElementById('searchInp');if(_si)_si.value='';const _sc=document.getElementById('searchClear');if(_sc)_sc.style.display='none';render();}
+function changeMonth(d){curMonth+=d;if(curMonth>11){curMonth=0;curYear++;}if(curMonth<0){curMonth=11;curYear--;}sortMode='default';searchMode='desc';searchQuery='';activeUserFilter='all';const _si=document.getElementById('searchInp');if(_si)_si.value='';const _sc=document.getElementById('searchClear');if(_sc)_sc.style.display='none';syncUserFilterBtn();render();}
 function getMonthTxs(){return txs.filter(t=>{const d=new Date(t.date+'T12:00:00');return d.getMonth()===curMonth&&d.getFullYear()===curYear;});}
 function showToast(msg,type='ok'){const el=document.getElementById('toast');el.textContent=msg;el.className='toast '+type+' show';setTimeout(()=>el.className='toast',2800);}
 
@@ -1308,6 +1437,8 @@ function filterTxs(list){
     if(activeFilter==='fixo'&&!t.fixo)return false;
     if(activeFilter==='repete'&&!t.repeat)return false;
     if(activeFilter==='aconf'&&!t.aConfirmar)return false;
+    // U8: user filter
+    if(activeUserFilter!=='all'&&t.user!==activeUserFilter)return false;
     return true;
   });
 }
@@ -1337,6 +1468,7 @@ function syncHomeControls(){
   ['desc','cat','value'].forEach(m=>{const el=document.getElementById('sm-'+m);if(el)el.classList.toggle('active',searchMode===m);});
   const inp=document.getElementById('searchInp');
   if(inp)inp.placeholder=searchMode==='cat'?'Buscar por categoria...':searchMode==='value'?'Ex: 224,08':'Buscar por descrição...';
+  syncUserFilterBtn();
 }
 function toggleSort(){sortMode=sortMode==='value'?'default':'value';renderTxList();}
 function setSearchMode(m){
@@ -2348,16 +2480,48 @@ function showPage(name){
   if(name==='charts'){renderCharts();renderPeriodBalance();renderEvolutionChart();}
   if(name==='cats')renderCatTree();
 }
-function toggleUser(){
-  const av=document.getElementById('hdrAv'),nm=document.getElementById('hdrName');
-  const cycle=[
-    {txt:'E',cls:'av av-e',name:'Elton'},
-    {txt:'C',cls:'av av-c',name:'Cláudia'},
-    {txt:'S',cls:'av av-s',name:'Saulo'},
-  ];
-  const cur=cycle.findIndex(c=>c.txt===av.textContent);
-  const next=cycle[(cur+1)%cycle.length];
-  av.className=next.cls; av.textContent=next.txt; nm.textContent=next.name;
+// U9: avatar menu replaces direct toggleUser cycle
+function toggleAvatarMenu(){
+  const menu=document.getElementById('avatarMenu');
+  const open=menu.style.display!=='none';
+  menu.style.display=open?'none':'block';
+  // Update PIN menu items based on current state
+  const hasPin=!!localStorage.getItem(FD_PIN_KEY);
+  const setPinBtn=document.getElementById('avMenuPinSet');
+  const offPinBtn=document.getElementById('avMenuPinOff');
+  if(setPinBtn)setPinBtn.textContent=hasPin?'🔐 Alterar PIN':'🔐 Ativar PIN';
+  if(offPinBtn)offPinBtn.style.display=hasPin?'flex':'none';
+  // Highlight current user
+  const cur=document.getElementById('hdrAv').textContent;
+  ['E','C','S'].forEach(u=>{
+    const el=document.getElementById('avMenu'+u);
+    if(el)el.classList.toggle('active-user',u===cur);
+  });
+  if(!open){
+    setTimeout(()=>document.addEventListener('click',_closeAvatarMenu,{once:true}),0);
+  }
+}
+function _closeAvatarMenu(e){
+  const wrap=document.getElementById('avatarMenuWrap');
+  if(wrap&&!wrap.contains(e.target)){
+    document.getElementById('avatarMenu').style.display='none';
+  }
+}
+function selectAvatarUser(u){
+  const map={E:{cls:'av av-e',name:'Elton'},C:{cls:'av av-c',name:'Cláudia'},S:{cls:'av av-s',name:'Saulo'}};
+  const m=map[u];
+  document.getElementById('hdrAv').className=m.cls;
+  document.getElementById('hdrAv').textContent=u;
+  document.getElementById('hdrName').textContent=m.name;
+  document.getElementById('avatarMenu').style.display='none';
+}
+// Keep toggleUser as alias for any internal calls
+function toggleUser(){ toggleAvatarMenu(); }
+function deactivatePin(){
+  localStorage.removeItem(FD_PIN_KEY);
+  localStorage.removeItem(FD_PIN_AUTH);
+  document.getElementById('avatarMenu').style.display='none';
+  showToast('PIN desativado ✅','ok');
 }
 
 // ═══════════════════════════════════════
@@ -3473,6 +3637,311 @@ function shareMonthReport(mode){
 // ═══════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════
+// ═══════════════════════════════════════
+//  U8 — USER FILTER DROPDOWN
+// ═══════════════════════════════════════
+function toggleUserFilterDropdown(){
+  const dd=document.getElementById('userFilterDropdown');
+  const open=dd.style.display!=='none';
+  dd.style.display=open?'none':'block';
+  if(!open){
+    // close on outside click
+    setTimeout(()=>document.addEventListener('click',_closeUFD,{once:true}),0);
+  }
+}
+function _closeUFD(e){
+  const dd=document.getElementById('userFilterDropdown');
+  if(dd&&!dd.contains(e.target))dd.style.display='none';
+}
+function setUserFilter(u){
+  activeUserFilter=u;
+  document.getElementById('userFilterDropdown').style.display='none';
+  syncUserFilterBtn();
+  renderTxList();
+}
+function syncUserFilterBtn(){
+  const btn=document.getElementById('userFilterBtn');
+  const banner=document.getElementById('userFilterBanner');
+  if(!btn)return;
+  const labels={all:'Todos',E:'Elton',C:'Cláudia',S:'Saulo'};
+  const initials={all:'',E:'E',C:'C',S:'S'};
+  const clsMap={all:'',E:'uf-e',C:'uf-c',S:'uf-s'};
+  const colorMap={E:'var(--green)',C:'var(--muted2)',S:'var(--blue)'};
+  btn.className='user-filter-btn'+(activeUserFilter!=='all'?' '+clsMap[activeUserFilter]:'');
+  btn.textContent=activeUserFilter==='all'?'👤 Todos':'👤 '+initials[activeUserFilter];
+  // active items in dropdown
+  document.querySelectorAll('.ufd-item').forEach((el,i)=>{
+    const u=['all','E','C','S'][i];
+    el.style.fontWeight=activeUserFilter===u?'700':'500';
+    el.style.color=activeUserFilter===u&&u!=='all'?colorMap[u]:'';
+  });
+  // banner
+  if(banner){
+    if(activeUserFilter==='all'){
+      banner.className='user-filter-banner';
+      banner.textContent='';
+    }else{
+      banner.className='user-filter-banner show '+clsMap[activeUserFilter];
+      banner.innerHTML='👤 Exibindo: <strong style="margin-left:4px">'+labels[activeUserFilter]+'</strong>';
+    }
+  }
+}
+
+// ═══════════════════════════════════════
+//  U9 — PIN LOCK
+// ═══════════════════════════════════════
+const FD_PIN_KEY='fd_pin';
+const FD_PIN_AUTH='fd_pin_auth';
+const PIN_WEEK_MS=7*24*60*60*1000;
+
+function checkPinOnStart(){
+  const pin=localStorage.getItem(FD_PIN_KEY);
+  if(!pin)return; // sem PIN configurado → libera
+  const lastAuth=parseInt(localStorage.getItem(FD_PIN_AUTH)||'0',10);
+  if(Date.now()-lastAuth<PIN_WEEK_MS)return; // autenticado recentemente → libera
+  // mostra tela de lock
+  document.getElementById('pinLock').style.display='flex';
+  setTimeout(()=>document.getElementById('pi0').focus(),200);
+}
+
+function onPinInput(idx){
+  const inp=document.getElementById('pi'+idx);
+  // Limitar a 1 dígito
+  const val=inp.value.replace(/[^0-9]/g,'').slice(-1);
+  inp.value=val;
+  // atualiza dots visuais
+  for(let i=0;i<4;i++){
+    const v=document.getElementById('pi'+i).value;
+    document.getElementById('pd'+i).className='pin-dot'+(v?' filled':'');
+  }
+  if(val&&idx<3)document.getElementById('pi'+(idx+1)).focus();
+  document.getElementById('pinError').textContent='';
+}
+
+const PIN_EMERGENCY='1234'; // PIN de emergência familiar
+function submitPin(){
+  const entered=[0,1,2,3].map(i=>document.getElementById('pi'+i).value).join('');
+  const stored=localStorage.getItem(FD_PIN_KEY)||'';
+  if(entered===stored||entered===PIN_EMERGENCY){
+    localStorage.setItem(FD_PIN_AUTH,String(Date.now()));
+    document.getElementById('pinLock').style.display='none';
+    if(entered===PIN_EMERGENCY&&entered!==stored){
+      // emergency access — silent
+    }
+  }else{
+    document.getElementById('pinError').textContent='PIN incorreto. Tente novamente.';
+    [0,1,2,3].forEach(i=>document.getElementById('pi'+i).value='');
+    for(let i=0;i<4;i++)document.getElementById('pd'+i).className='pin-dot';
+    setTimeout(()=>document.getElementById('pi0').focus(),100);
+  }
+}
+
+// Enter key support on PIN screen
+document.addEventListener('keydown',function(e){
+  if(document.getElementById('pinLock').style.display!=='none'&&e.key==='Enter')submitPin();
+});
+
+function openPinModal(){
+  const hasPin=!!localStorage.getItem(FD_PIN_KEY);
+  document.getElementById('setPinA').value='';
+  document.getElementById('setPinB').value='';
+  document.getElementById('pinModalTitle').textContent=hasPin?'🔐 Alterar PIN':'🔐 Ativar PIN';
+  document.getElementById('avatarMenu').style.display='none';
+  document.getElementById('overlaySettings').classList.add('open');
+  setTimeout(()=>document.getElementById('setPinA').focus(),200);
+}
+// Keep openSettings as alias (called nowhere else now, but safe)
+function openSettings(){ openPinModal(); }
+function closeSettings(){document.getElementById('overlaySettings').classList.remove('open');}
+function savePinSettings(){
+  const a=document.getElementById('setPinA').value.replace(/[^0-9]/g,'');
+  const b=document.getElementById('setPinB').value.replace(/[^0-9]/g,'');
+  if(a.length!==4){showToast('PIN deve ter 4 dígitos','err');return;}
+  if(a!==b){showToast('PINs não coincidem','err');return;}
+  localStorage.setItem(FD_PIN_KEY,a);
+  localStorage.setItem(FD_PIN_AUTH,String(Date.now()));
+  showToast('PIN ativado ✅','ok');
+  closeSettings();
+}
+// removePinSettings kept as alias — actual removal via deactivatePin()
+function removePinSettings(){ deactivatePin(); closeSettings(); }
+
+// ═══════════════════════════════════════
+//  T1 — ALERTAS DESPESAS FIXAS ENCERRANDO
+// ═══════════════════════════════════════
+const MONTHS_PT=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+
+function checkFixedExpiringSoon(){
+  const now=new Date();
+  const sysMonth=now.getMonth();
+  const sysYear=now.getFullYear();
+
+  // Verificar se já foi ignorado hoje
+  const ignoredDate=localStorage.getItem('fd_fix_alert_date')||'';
+  const todayStr=localDate(now);
+  if(ignoredDate===todayStr)return;
+
+  // Coletar despesas fixas do mês ATUAL DO SISTEMA
+  const seen=new Set();
+  const alerts=[];
+  txs.forEach(t=>{
+    if(!t.fixo||t.type!=='despesa')return;
+    if(t.repeatIndex==null||t.repeatTotal==null)return;
+    const d=new Date(t.date+'T12:00:00');
+    if(d.getMonth()!==sysMonth||d.getFullYear()!==sysYear)return;
+    // Evitar duplicatas por group_id
+    const key=t.groupId||t.id;
+    if(seen.has(key))return;
+    seen.add(key);
+    const diff=t.repeatTotal-t.repeatIndex;
+    if(diff>2)return; // fora da janela
+    // Calcular mês de encerramento
+    const endDate=addMonths(new Date(t.date+'T12:00:00'),diff);
+    const level=diff===0?'🔴':diff===1?'🟡':'📅';
+    const levelLabel=diff===0?'Último mês!':diff===1?'Penúltimo mês':'Antepenúltimo mês';
+    alerts.push({t,level,levelLabel,endDate,diff});
+  });
+
+  if(alerts.length===0)return;
+
+  // Ordenar: 🔴 primeiro
+  alerts.sort((a,b)=>a.diff-b.diff);
+  _fixAlertData=alerts;
+
+  // Renderizar lista
+  const list=document.getElementById('fixAlertList');
+  list.innerHTML='';
+  alerts.forEach(({t,level,levelLabel,endDate})=>{
+    const endStr=MONTHS_PT[endDate.getMonth()]+'/'+endDate.getFullYear();
+    const item=document.createElement('div');
+    item.className='fix-item';
+    item.innerHTML=`
+      <span class="fix-item-lvl">${level}</span>
+      <div class="fix-item-left">
+        <div class="fix-item-name">${t.desc||'Sem descrição'}</div>
+        <div class="fix-item-meta">${levelLabel} · encerra em ${endStr} · ${t.repeatIndex}/${t.repeatTotal}</div>
+      </div>
+      <span class="fix-item-amt">${fmt(t.amount)}</span>
+      <button class="fix-renew-btn" onclick="renewFixed('${t.id}')">🔄 Renovar</button>
+    `;
+    list.appendChild(item);
+  });
+
+  // Reset AI area
+  document.getElementById('fixAiArea').classList.remove('show');
+  document.getElementById('fixAiResult').textContent='';
+  document.getElementById('fixAiLoading').style.display='none';
+  document.getElementById('fixAiBtn').disabled=false;
+  document.getElementById('fixAiBtn').textContent='✨ Analisar com IA';
+
+  document.getElementById('fixAlertOverlay').classList.add('open');
+}
+
+function closeFixAlert(ignore){
+  if(ignore){
+    localStorage.setItem('fd_fix_alert_date',localDate(new Date()));
+  }
+  document.getElementById('fixAlertOverlay').classList.remove('open');
+}
+
+function renewFixed(txId){
+  closeFixAlert(false);
+  const tx=txs.find(t=>t.id===txId);
+  if(!tx)return;
+  // Calcular data de início = 1º do mês seguinte ao encerramento
+  const endDate=addMonths(new Date(tx.date+'T12:00:00'),tx.repeatTotal-tx.repeatIndex);
+  const nextMonth=addMonths(endDate,1);
+  const startDate=new Date(nextMonth.getFullYear(),nextMonth.getMonth(),1);
+  const startStr=localDate(startDate);
+  // Pre-popular openLaunch com os dados da despesa
+  openLaunch('despesa',null);
+  // Preencher campos após o launch abrir
+  setTimeout(()=>{
+    // Descrição
+    document.getElementById('lsDesc').value=tx.desc||'';
+    // Valor
+    const fmtd=(tx.amount).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+    document.getElementById('lsAmtDisplay').textContent=fmtd;
+    document.getElementById('lsAmt').value=tx.amount;
+    calcExpr=String(tx.amount).replace('.',',');
+    // Data
+    lsQuickDate='outros';lsCustomDate=startStr;
+    document.getElementById('dpHoje').className='dpill';
+    document.getElementById('dpOntem').className='dpill';
+    document.getElementById('dpOutros').className='dpill active-red';
+    document.getElementById('dpCustom').style.display='block';
+    document.getElementById('dpCustom').value=startStr;
+    // Fixo = true, Repetir = true, 12x mensal
+    document.getElementById('tgFixo').checked=true;
+    document.getElementById('tgRepetir').checked=true;
+    document.getElementById('repeatOpts').className='repeat-opts show';
+    lsRepeatUnit='mensal';setRepeatUnit('mensal');
+    lsRepeatN=12;document.getElementById('repNum').textContent=12;
+    // Categoria
+    lsSelCatId=tx.catId||null;
+    lsSelSubId=tx.subId||null;
+    updateCatPill();
+    // Usuário
+    selectLsUser(tx.user||lsUser);
+    showToast('Ajuste o valor se necessário e salve','ok');
+  },350);
+}
+
+// ═══════════════════════════════════════
+//  T1b — IA AVALIANDO FIXOS ENCERRANDO
+// ═══════════════════════════════════════
+async function analyzeFixedWithAI(){
+  if(!_fixAlertData.length)return;
+  const btn=document.getElementById('fixAiBtn');
+  btn.disabled=true;
+  btn.textContent='⏳ Analisando...';
+  const aiArea=document.getElementById('fixAiArea');
+  const aiLoading=document.getElementById('fixAiLoading');
+  const aiResult=document.getElementById('fixAiResult');
+  aiArea.classList.add('show');
+  aiLoading.style.display='block';
+  aiResult.textContent='';
+
+  // Calcular total de despesas do mês atual do sistema
+  const now=new Date();
+  const sysMonth=now.getMonth(),sysYear=now.getFullYear();
+  const monthExp=txs.filter(t=>{
+    const d=new Date(t.date+'T12:00:00');
+    return t.type==='despesa'&&d.getMonth()===sysMonth&&d.getFullYear()===sysYear;
+  }).reduce((a,t)=>a+t.amount,0);
+
+  const MONTHS_ABREV=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  const lines=_fixAlertData.map(({t,level,levelLabel,endDate})=>{
+    const cat=findCat(t.type,t.catId);
+    const totalPago=t.amount*t.repeatTotal;
+    const pct=monthExp>0?((t.amount/monthExp)*100).toFixed(1):'?';
+    const endStr=MONTHS_ABREV[endDate.getMonth()]+'/'+endDate.getFullYear();
+    return `${level} ${t.desc||'Sem desc'} | R$ ${t.amount.toFixed(2)}/mês | cat: ${cat?.name||'?'} | encerra: ${endStr} | total pago: R$ ${totalPago.toFixed(2)} | ${pct}% das despesas do mês`;
+  }).join('\n');
+
+  const prompt=`Você é um assistente financeiro objetivo. Analise as despesas fixas abaixo que estão encerrando e dê uma recomendação concisa para cada uma. Para cada despesa, informe: (1) Recomendação: renovar, reavaliar ou encerrar — com justificativa curta; (2) Impacto anual se renovar (valor × 12); (3) Observação rápida se relevante. Responda em português, sem introduções longas.
+
+Despesas encerrando:
+${lines}`;
+
+  try{
+    const data=await callAnthropicAPI({
+      model:'claude-haiku-4-5-20251001',
+      max_tokens:600,
+      messages:[{role:'user',content:prompt}]
+    });
+    const txt=data.content.map(c=>c.text||'').join('');
+    aiLoading.style.display='none';
+    aiResult.innerHTML=txt.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').split('\n').join('<br>');
+    btn.textContent='✨ Analisado';
+  }catch(err){
+    aiLoading.style.display='none';
+    aiResult.textContent='Erro ao consultar IA: '+err.message;
+    btn.disabled=false;
+    btn.textContent='✨ Analisar com IA';
+  }
+}
+
 // B18: calcula o top da search-sticky dinamicamente a partir da altura real
 // do header (.hdr) — a sync-bar nao e sticky, entao so o .hdr fica fixo no topo.
 function updateStickyTop(){
@@ -3485,12 +3954,14 @@ window.addEventListener('resize',updateStickyTop);
 window.addEventListener('orientationchange',updateStickyTop);
 
 async function init(){
+  checkPinOnStart(); // U9: verifica PIN antes de tudo
   updateStickyTop(); // B18: antes de qualquer render
   await loadCategories();
   await loadFromCloud();
   startRealtime();
   seedDefaultCategories(); // B19: fire-and-forget, não bloqueia o render
   checkAndShowMonthReport(); // v6: A4 — verifica dia 1 do mês
+  checkFixedExpiringSoon(); // T1: alerta despesas fixas encerrando
   updateStickyTop(); // B18: recalcula apos layout estabilizar
 }
 init();
@@ -3512,5 +3983,65 @@ init();
     </div>
   </div>
 </div>
-</body>
-</html>
+<!-- U9: PIN lock screen -->
+<div class="pin-lock" id="pinLock" style="display:none">
+  <div class="pin-lock-logo">💸</div>
+  <div class="pin-lock-title">FinIop</div>
+  <div class="pin-lock-sub">Digite seu PIN para continuar</div>
+  <div class="pin-dots" id="pinDots">
+    <div class="pin-dot" id="pd0"></div>
+    <div class="pin-dot" id="pd1"></div>
+    <div class="pin-dot" id="pd2"></div>
+    <div class="pin-dot" id="pd3"></div>
+  </div>
+  <div class="pin-inputs">
+    <input class="pin-input" id="pi0" type="number" inputmode="numeric" maxlength="1" pattern="[0-9]" autocomplete="off" oninput="onPinInput(0)">
+    <input class="pin-input" id="pi1" type="number" inputmode="numeric" maxlength="1" pattern="[0-9]" autocomplete="off" oninput="onPinInput(1)">
+    <input class="pin-input" id="pi2" type="number" inputmode="numeric" maxlength="1" pattern="[0-9]" autocomplete="off" oninput="onPinInput(2)">
+    <input class="pin-input" id="pi3" type="number" inputmode="numeric" maxlength="1" pattern="[0-9]" autocomplete="off" oninput="onPinInput(3)">
+  </div>
+  <div class="pin-error" id="pinError"></div>
+  <button class="pin-enter-btn" onclick="submitPin()">Entrar</button>
+</div>
+
+<!-- U9: PIN modal (via avatar menu) -->
+<div class="overlay-settings" id="overlaySettings" onclick="if(event.target===this)closeSettings()">
+  <div class="settings-box">
+    <div class="settings-ttl" id="pinModalTitle">🔐 Ativar PIN</div>
+    <div class="settings-sub">PIN de 4 dígitos · solicitado 1x por semana</div>
+    <div class="settings-pin-inputs">
+      <input class="settings-pin-inp" id="setPinA" type="number" inputmode="numeric" placeholder="Novo PIN (4 dígitos)" maxlength="4" style="letter-spacing:normal;font-size:16px;width:100%" autocomplete="new-password">
+      <input class="settings-pin-inp" id="setPinB" type="number" inputmode="numeric" placeholder="Confirmar PIN" maxlength="4" style="letter-spacing:normal;font-size:16px;width:100%" autocomplete="new-password">
+    </div>
+    <div class="settings-pin-actions">
+      <button class="settings-save-btn" onclick="savePinSettings()">Salvar PIN</button>
+      <button class="settings-close-btn" style="flex:0;padding:12px 16px" onclick="closeSettings()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- T1: Fixed expenses expiring modal -->
+<div class="fix-alert-overlay" id="fixAlertOverlay" onclick="if(event.target===this)closeFixAlert(false)">
+  <div class="fix-alert-box">
+    <div class="fix-alert-hdr">
+      <div class="fix-alert-ttl">📅 Despesas fixas encerrando</div>
+      <button class="modal-close" onclick="closeFixAlert(false)">✕</button>
+    </div>
+    <div class="fix-alert-sub">Atenção: estas despesas fixas estão chegando ao fim da série.</div>
+    <div class="fix-alert-list" id="fixAlertList"></div>
+    <!-- T1b: AI area -->
+    <div class="fix-ai-area" id="fixAiArea">
+      <div class="fix-ai-loading" id="fixAiLoading" style="display:none">⏳ Analisando com IA...</div>
+      <div class="fix-ai-result" id="fixAiResult"></div>
+    </div>
+    <div class="fix-alert-btns">
+      <button class="fix-btn-ai" id="fixAiBtn" onclick="analyzeFixedWithAI()">✨ Analisar com IA</button>
+      <div class="fix-btn-row">
+        <button class="fix-btn-ignore" onclick="closeFixAlert(true)">Ignorar por hoje</button>
+        <button class="fix-btn-close" onclick="closeFixAlert(false)">Fechar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
