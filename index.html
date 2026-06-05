@@ -1026,6 +1026,7 @@ let lsAConfirmar=false;
 let lsQuickDate='hoje',lsCustomDate='';
 let lsRepeatUnit='mensal',lsRepeatN=2;
 let editingTxId=null;
+let isSubmitting=false; // B32: guard contra race condition Realtime×submitLaunch
 let activeFilter='all';
 let searchQuery='';
 let newCatType='despesa',newSubForCatId=null;
@@ -1193,6 +1194,8 @@ async function loadFromCloud(){
     txs=rows.map(rowToTx);
     localStorage.setItem('fd_txs_bk',JSON.stringify(txs));
     setSyncStatus('ok','Sincronizado ✓');
+    // B29: avisa se o limite de 5000 foi atingido (registros antigos podem estar ocultos)
+    if(rows.length===5000) showToast('⚠️ Muitos lançamentos — alguns registros antigos podem não estar visíveis. Considere exportar um backup.','err');
     render();
   }catch(e){
     setSyncStatus('err','Sem conexão — dados locais');
@@ -1216,6 +1219,7 @@ function startRealtime(){
     ws.onmessage=async(e)=>{
       const msg=JSON.parse(e.data);
       if(msg.event==='INSERT'||msg.event==='UPDATE'||msg.event==='DELETE'){
+        if(isSubmitting) return; // B32: ignora evento durante submit em andamento
         const rows=await sbGet('transactions','select=*&order=date.desc,created_at.desc&limit=5000');
         txs=rows.map(rowToTx);
         localStorage.setItem('fd_txs_bk',JSON.stringify(txs));
@@ -1866,6 +1870,7 @@ async function submitLaunch(){
   const btn=document.getElementById('btnSave');
   btn.disabled=true;btn.textContent='Salvando...';
 
+  isSubmitting=true; // B32
   try{
     const baseDate=getSelDate();
     const pago=document.getElementById('tgPago').checked;
@@ -2007,6 +2012,7 @@ async function submitLaunch(){
     showToast('Erro ao salvar. Tente novamente.','err');
     console.error(e);
   }finally{
+    isSubmitting=false; // B32
     btn.disabled=false;
     btn.className='btn-save '+(lsType==='despesa'?'red':'grn');
     btn.textContent=editingTxId?'Salvar alterações':'Salvar';
@@ -2733,8 +2739,11 @@ function renderRevCard(item){
           : item.confirmed===true
           ? `<button class="rev-act-btn skip" onclick="toggleImpItem('${item.id}',false)">Ignorar</button>
              <button class="rev-act-btn confirm active-confirm" onclick="toggleImpItem('${item.id}',null)">✓ Confirmado</button>`
-          : `<button class="rev-act-btn skip" onclick="toggleImpItem('${item.id}',false)">Ignorar</button>
-             <button class="rev-act-btn confirm unconfirmed" onclick="toggleImpItem('${item.id}',true)">✓ Confirmar</button>`
+          : item.catId
+            ? `<button class="rev-act-btn skip" onclick="toggleImpItem('${item.id}',false)">Ignorar</button>
+               <button class="rev-act-btn confirm unconfirmed" onclick="toggleImpItem('${item.id}',true)">✓ Confirmar</button>`
+            : `<button class="rev-act-btn skip" onclick="toggleImpItem('${item.id}',false)">Ignorar</button>
+               <button class="rev-act-btn confirm unconfirmed" disabled title="Selecione uma categoria antes de confirmar" style="opacity:.4;cursor:not-allowed">✓ Confirmar</button>`
       }
     </div>
   </div>`;
@@ -2860,6 +2869,7 @@ async function confirmAllImport(){
   btn.disabled=true; btn.textContent='Salvando...';
   try {
     const rows = [];
+    let b27SkippedCount = 0; // B27: contador de parcelas ignoradas por já existirem
     for(const item of toSave){
       if(item.catId) learnPattern(item.rawName, item.catId, item.subId, item.desc);
       if(item.installmentTotal && item.installmentTotal > 1){
@@ -2869,16 +2879,24 @@ async function confirmAllImport(){
         // If current installment is not 1, go back to figure out the first date
         const offset = (item.installmentCurrent||1) - 1;
         const firstDate = addMonths(startDate, -offset); // B23: clamp via addMonths
-        const dates = generateRecurringDates(firstDate, 'mensal', item.installmentTotal);
-        dates.forEach((date, i) => {
+        const allDates = generateRecurringDates(firstDate, 'mensal', item.installmentTotal);
+        // B27: filtrar parcelas que já existem no banco (evita duplicatas em reimportação)
+        let skippedInstallments = 0;
+        const validDates = allDates.filter(date => {
+          if(checkDuplicate(item.amount, date)){ skippedInstallments++; return false; }
+          return true;
+        });
+        if(skippedInstallments > 0) b27SkippedCount += skippedInstallments;
+        validDates.forEach((date, i) => {
+          const globalIdx = allDates.indexOf(date);
           rows.push(txToRow({
             id: uid(), group_id: groupId, type: item.type,
             amount: item.amount, desc: item.desc||item.rawName,
-            obs: `Parcela ${i+1}/${item.installmentTotal}`, date,
+            obs: `Parcela ${globalIdx+1}/${item.installmentTotal}`, date,
             catId: item.catId||null, subId: item.subId||null,
-            user: impUser, pago: (i===0), fixo: false, repeat: true,
+            user: impUser, pago: (globalIdx===0), fixo: false, repeat: true,
             repeatUnit: 'mensal', repeatN: item.installmentTotal,
-            repeatIndex: i+1, repeatTotal: item.installmentTotal,
+            repeatIndex: globalIdx+1, repeatTotal: item.installmentTotal,
           }));
         });
       } else {
@@ -2895,6 +2913,8 @@ async function confirmAllImport(){
     rows.forEach(r=>txs.push(rowToTx(r)));
     localStorage.setItem('fd_txs_bk', JSON.stringify(txs));
     showToast(`✅ ${rows.length} lançamento(s) importados!`,'ok');
+    // B27: avisa parcelas ignoradas por duplicata
+    if(b27SkippedCount > 0) setTimeout(()=>showToast(`⚠️ ${b27SkippedCount} parcela(s) ignorada(s) por já existirem no banco.`,'err'), 1500);
     closeImport(); render();
   } catch(e){
     showToast('Erro ao salvar importação','err');
