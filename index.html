@@ -460,6 +460,59 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .imp-save-all:active{transform:scale(.98)}
 .imp-save-all:disabled{opacity:.4;cursor:not-allowed}
 
+/* ═══ v9a — REVISÃO DE FATURA ═══ */
+.imp-tabs{display:flex;gap:6px;padding:10px 14px 0;flex-shrink:0}
+.imp-tab{flex:1;border:1px solid var(--border);border-bottom:none;border-radius:10px 10px 0 0;padding:11px;font-size:13px;font-weight:700;cursor:pointer;background:var(--surf2);color:var(--muted2);transition:all .2s}
+.imp-tab.active{background:var(--bg);color:var(--text);border-color:var(--border)}
+.rev-source-row{display:flex;gap:8px;margin-bottom:16px}
+.rev-source-btn{flex:1;border:1px solid var(--border);border-radius:var(--rs);padding:11px 6px;cursor:pointer;font-size:12px;font-weight:600;background:var(--surf2);color:var(--muted2);transition:all .2s;text-align:center}
+.rev-source-btn.active{border-color:var(--blue);background:var(--bdim);color:var(--blue)}
+.rev-source-btn.soon{opacity:.45;cursor:not-allowed}
+.rev-source-btn.soon .rev-soon-tag{display:block;font-size:9px;color:var(--muted);margin-top:2px}
+.rev-period-row{display:flex;gap:8px;margin-bottom:16px}
+.rev-period-sel{flex:1;background:var(--surf2);border:1px solid var(--border);border-radius:var(--rs);padding:10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;-webkit-appearance:none;appearance:none}
+.rev-progress{background:var(--surf);border:1px solid var(--border);border-radius:var(--rs);padding:14px;margin-bottom:14px;display:none}
+.rev-progress.show{display:block}
+.rev-progress-step{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--muted);padding:4px 0}
+.rev-progress-step.done{color:var(--green)}
+.rev-progress-step.active{color:var(--text);font-weight:600}
+.rev-progress-step .rps-ico{width:18px;text-align:center;flex-shrink:0}
+.rev-progress-step.active .rps-ico{animation:blink .7s infinite}
+.rev-filter-row{display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;scrollbar-width:none}
+.rev-filter-row::-webkit-scrollbar{display:none}
+.rev-filter-pill{border:1px solid var(--border);border-radius:20px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;background:var(--surf2);color:var(--muted2);white-space:nowrap;transition:all .2s;flex-shrink:0}
+.rev-filter-pill.active{background:var(--bdim);border-color:var(--blue);color:var(--blue)}
+.rev-group-hdr{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;margin:14px 0 8px;cursor:pointer;user-select:none}
+.rev-group-hdr .rgh-chev{font-size:11px;color:var(--muted);transition:transform .2s}
+.rev-group-hdr.collapsed .rgh-chev{transform:rotate(-90deg)}
+.rev-group-hdr .rgh-count{font-size:12px;color:var(--muted);background:var(--surf2);padding:1px 8px;border-radius:10px;font-weight:600}
+.rev-group-body.collapsed{display:none}
+.rev-match-card{background:var(--surf);border:1px solid var(--border);border-radius:var(--rs);padding:12px;margin-bottom:8px}
+.rev-match-card.ok{border-left:3px solid var(--green)}
+.rev-match-card.amb{border-left:3px solid var(--yellow)}
+.rev-match-card.miss{border-left:3px solid var(--amber)}
+.rev-mc-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.rev-mc-desc{font-weight:600;font-size:14px}
+.rev-mc-amt{font-weight:800;font-size:15px;color:var(--red);white-space:nowrap}
+.rev-mc-link{font-size:12px;color:var(--muted2);margin-top:3px;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.rev-mc-link .arr{color:var(--blue)}
+.rev-mc-note{font-size:11px;color:var(--yellow);margin-top:5px}
+.rev-mc-conf{font-size:11px;color:var(--muted);margin-top:5px}
+.rev-mc-actions{display:flex;gap:7px;margin-top:10px}
+.rev-mc-btn{flex:1;border:none;border-radius:8px;padding:9px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s}
+.rev-mc-btn.yes{background:var(--gdim);border:1px solid var(--gborder);color:var(--green)}
+.rev-mc-btn.no{background:var(--rdim);border:1px solid var(--rborder);color:var(--red)}
+.rev-mc-btn.launch{background:var(--amber);color:#0d0f14}
+.rev-mc-btn:active{transform:scale(.97)}
+.rev-empty{text-align:center;padding:30px 20px;color:var(--muted);font-size:13px;line-height:1.6}
+.rev-summary{display:flex;gap:8px;margin-bottom:14px}
+.rev-sum-box{flex:1;background:var(--surf2);border:1px solid var(--border);border-radius:var(--rs);padding:10px;text-align:center}
+.rev-sum-box .rsb-num{font-size:20px;font-weight:800}
+.rev-sum-box .rsb-lbl{font-size:10px;color:var(--muted);margin-top:2px}
+.rev-sum-box.ok .rsb-num{color:var(--green)}
+.rev-sum-box.amb .rsb-num{color:var(--yellow)}
+.rev-sum-box.miss .rsb-num{color:var(--amber)}
+
 /* ── ANÁLISE IA ── */
 .analysis-screen{position:fixed;inset:0;background:var(--bg);z-index:200;display:none;flex-direction:column;max-width:430px;margin:0 auto;animation:fadeInUp .25s ease}
 .analysis-screen.open{display:flex}
@@ -782,9 +835,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <div class="import-screen" id="importScreen">
   <div class="imp-topbar">
     <button class="ls-cancel" onclick="closeImport()">Cancelar</button>
-    <div class="imp-title">📷 Importar Print</div>
+    <div class="imp-title" id="impTitle">📷 Importar Print</div>
+  </div>
+  <div class="imp-tabs">
+    <button class="imp-tab active" id="impTabImport" onclick="switchImpTab('import')">📷 Importar</button>
+    <button class="imp-tab" id="impTabReview" onclick="switchImpTab('review')">📋 Revisão</button>
   </div>
   <div class="imp-body" id="impBody">
+    <div id="impBodyImport">
     <!-- USER SELECTOR -->
     <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Lançar como</div>
     <div class="imp-user-row" style="margin-bottom:18px">
@@ -810,8 +868,54 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div id="impPreviewList" style="display:flex;flex-direction:column;gap:8px"></div>
     </div>
     <div id="impResults"></div>
+    </div><!-- /impBodyImport -->
+
+    <div id="impBodyReview" style="display:none">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Lançar como</div>
+      <div class="imp-user-row" style="margin-bottom:16px">
+        <button class="imp-user-btn sel-e" id="revUserE" onclick="setRevUser('E')"><div class="av av-e" style="width:22px;height:22px;font-size:9px">E</div> Elton</button>
+        <button class="imp-user-btn" id="revUserC" onclick="setRevUser('C')"><div class="av av-c" style="width:22px;height:22px;font-size:9px">C</div> Cláudia</button>
+        <button class="imp-user-btn" id="revUserS" onclick="setRevUser('S')"><div class="av av-s" style="width:22px;height:22px;font-size:9px">S</div> Saulo</button>
+      </div>
+
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Fonte da fatura</div>
+      <div class="rev-source-row">
+        <button class="rev-source-btn active" id="revSrcCsv" onclick="setRevSource('csv')">📄 CSV<br>C6</button>
+        <button class="rev-source-btn" id="revSrcPrints" onclick="setRevSource('prints')">📷 Prints</button>
+        <button class="rev-source-btn soon" id="revSrcPdf" disabled>📑 PDF<span class="rev-soon-tag">em breve</span></button>
+      </div>
+
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Mês de referência</div>
+      <div class="rev-period-row">
+        <select class="rev-period-sel" id="revMonth"></select>
+        <select class="rev-period-sel" id="revYear"></select>
+      </div>
+
+      <div class="imp-drop" id="revDrop">
+        <input type="file" id="revFile" accept=".csv,text/csv" onchange="handleRevFile(event)">
+        <div class="imp-drop-ico" id="revDropIco">📄</div>
+        <div class="imp-drop-lbl" id="revDropLbl">Toque para enviar o CSV do C6</div>
+        <div class="imp-drop-sub" id="revDropSub">Extraia o CSV do ZIP do app C6 (sem senha)<br>e envie aqui — leitura local, sem custo de IA</div>
+      </div>
+
+      <div class="rev-progress" id="revProgress">
+        <div class="rev-progress-step" id="revStep1"><span class="rps-ico">○</span> Lendo arquivo…</div>
+        <div class="rev-progress-step" id="revStep2"><span class="rps-ico">○</span> Cruzando dados…</div>
+        <div class="rev-progress-step" id="revStep3"><span class="rps-ico">○</span> Analisando ambíguos com IA…</div>
+        <div class="rev-progress-step" id="revStep4"><span class="rps-ico">○</span> Concluído</div>
+      </div>
+
+      <div id="revSummary"></div>
+      <div class="rev-filter-row" id="revFilterRow" style="display:none">
+        <button class="rev-filter-pill active" data-rf="all" onclick="setRevFilter('all')">Todos</button>
+        <button class="rev-filter-pill" data-rf="matched" onclick="setRevFilter('matched')">✅ Lançados</button>
+        <button class="rev-filter-pill" data-rf="ambiguous" onclick="setRevFilter('ambiguous')">🔍 Verificar</button>
+        <button class="rev-filter-pill" data-rf="missing" onclick="setRevFilter('missing')">⚠️ Não lançados</button>
+      </div>
+      <div id="revResults"></div>
+    </div><!-- /impBodyReview -->
   </div>
-  <div class="imp-save-bar">
+  <div class="imp-save-bar" id="impSaveBar">
     <div style="display:flex;gap:8px">
       <button onclick="confirmAll()" style="flex:1;padding:12px;border:none;border-radius:50px;background:var(--surf2);border:1px solid var(--border);color:var(--text);font-weight:700;font-size:13px;cursor:pointer">✓ Confirmar todos</button>
       <button class="imp-save-all" id="impSaveAll" onclick="confirmAllImport()" disabled style="flex:2">Salvar</button>
@@ -1891,7 +1995,7 @@ function calcAction(btn){
   updateCalcDisplay();
 }
 
-function closeLaunch(){document.getElementById('launchScreen').classList.remove('open');closeCalc();calcExpr='';editingTxId=null;hideCatSuggest();}
+function closeLaunch(){document.getElementById('launchScreen').classList.remove('open');closeCalc();calcExpr='';editingTxId=null;hideCatSuggest();_revPendingMissingIdx=null;if(_revPrevHdrUser!=null){document.getElementById('hdrAv').textContent=_revPrevHdrUser;_revPrevHdrUser=null;}}
 function toggleLaunchType(){if(!editingTxId)openLaunch(lsType==='despesa'?'receita':'despesa',null);}
 
 function setDate(which){
@@ -2205,6 +2309,7 @@ async function submitLaunch(){
       }
     }
     localStorage.setItem('fd_txs_bk',JSON.stringify(txs));
+    if(typeof revOnLaunchSaved==='function') revOnLaunchSaved(); // B35: antes de closeLaunch (que zera o indice)
     closeLaunch();render();
   }catch(e){
     showToast('Erro ao salvar. Tente novamente.','err');
@@ -2847,6 +2952,588 @@ function normalizeDate(d){
   if(parts.length!==3) return d;
   return parts[0]+'-'+parts[1].padStart(2,'0')+'-'+parts[2].padStart(2,'0');
 }
+// ═══════════════════════════════════════════════════════════
+//  v9a — REVISÃO DE FATURA  (módulo isolado — não altera fluxos)
+// ═══════════════════════════════════════════════════════════
+let revUser = 'E';
+let revSource = 'csv';      // 'csv' | 'prints'
+let revFilter = 'all';      // all | matched | ambiguous | missing
+let revGroups = { matched: [], ambiguous: [], missing: [] };
+let revCollapsed = { matched: true, ambiguous: false, missing: false };
+
+function switchImpTab(tab){
+  const isReview = tab === 'review';
+  document.getElementById('impTabImport').classList.toggle('active', !isReview);
+  document.getElementById('impTabReview').classList.toggle('active', isReview);
+  document.getElementById('impBodyImport').style.display = isReview ? 'none' : 'block';
+  document.getElementById('impBodyReview').style.display = isReview ? 'block' : 'none';
+  document.getElementById('impSaveBar').style.display = isReview ? 'none' : 'block';
+  document.getElementById('impTitle').textContent = isReview ? '📋 Revisão de Fatura' : '📷 Importar Print';
+  if(isReview) initRevPeriod();
+}
+
+function setRevUser(u){
+  revUser = u;
+  document.getElementById('revUserE').className = 'imp-user-btn' + (u==='E'?' sel-e':'');
+  document.getElementById('revUserC').className = 'imp-user-btn' + (u==='C'?' sel-c':'');
+  document.getElementById('revUserS').className = 'imp-user-btn' + (u==='S'?' sel-s':'');
+}
+
+function setRevSource(src){
+  revSource = src;
+  document.getElementById('revSrcCsv').classList.toggle('active', src==='csv');
+  document.getElementById('revSrcPrints').classList.toggle('active', src==='prints');
+  const fileEl = document.getElementById('revFile');
+  if(src==='csv'){
+    fileEl.setAttribute('accept', '.csv,text/csv');
+    fileEl.removeAttribute('multiple');
+    document.getElementById('revDropIco').textContent = '📄';
+    document.getElementById('revDropLbl').textContent = 'Toque para enviar o CSV do C6';
+    document.getElementById('revDropSub').innerHTML = 'Extraia o CSV do ZIP do app C6 (sem senha)<br>e envie aqui — leitura local, sem custo de IA';
+  } else {
+    fileEl.setAttribute('accept', 'image/*');
+    fileEl.setAttribute('multiple', 'multiple');
+    document.getElementById('revDropIco').textContent = '📷';
+    document.getElementById('revDropLbl').textContent = 'Toque para enviar print(s) da fatura';
+    document.getElementById('revDropSub').innerHTML = 'Prints de qualquer banco — extração via IA<br>Pode enviar mais de uma imagem';
+  }
+  resetRevFileInput();
+}
+
+function resetRevFileInput(){
+  // Reset robusto p/ Safari iOS (mesmo padrão do openImport)
+  const old = document.getElementById('revFile');
+  const fresh = old.cloneNode(true);
+  fresh.onchange = handleRevFile;
+  old.parentNode.replaceChild(fresh, old);
+}
+
+function initRevPeriod(){
+  const mSel = document.getElementById('revMonth');
+  const ySel = document.getElementById('revYear');
+  if(mSel.options.length) return; // já populado
+  const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  mSel.innerHTML = meses.map((m,i)=>`<option value="${i}">${m}</option>`).join('');
+  const nowY = new Date().getFullYear();
+  let yOpts = '';
+  for(let y=nowY-2; y<=nowY+1; y++) yOpts += `<option value="${y}">${y}</option>`;
+  ySel.innerHTML = yOpts;
+  // Default: mês anterior ao atual
+  const d = new Date(); d.setDate(1); d.setMonth(d.getMonth()-1);
+  mSel.value = d.getMonth();
+  ySel.value = d.getFullYear();
+}
+
+// ── Indicador de progresso ──
+function revSetStep(n, state){
+  // state: 'active' | 'done' | 'idle'
+  const el = document.getElementById('revStep'+n);
+  if(!el) return;
+  el.classList.remove('active','done');
+  const ico = el.querySelector('.rps-ico');
+  if(state==='active'){ el.classList.add('active'); ico.textContent='◐'; }
+  else if(state==='done'){ el.classList.add('done'); ico.textContent='✓'; }
+  else { ico.textContent='○'; }
+}
+function revShowProgress(show){
+  document.getElementById('revProgress').classList.toggle('show', show);
+  if(show){ for(let i=1;i<=4;i++) revSetStep(i,'idle'); }
+}
+
+// ── Leitura de arquivo (entrada única para CSV ou prints) ──
+async function handleRevFile(e){
+  const files = Array.from(e.target.files);
+  if(!files.length) return;
+  document.getElementById('revResults').innerHTML = '';
+  document.getElementById('revSummary').innerHTML = '';
+  document.getElementById('revFilterRow').style.display = 'none';
+  revShowProgress(true);
+  revSetStep(1,'active');
+
+  try {
+    let external = [];
+    if(revSource === 'csv'){
+      const text = await readFileSmart(files[0]);
+      external = parseC6CSV(text);
+    } else {
+      external = await extractFromPrints(files);
+    }
+    revSetStep(1,'done');
+
+    if(!external.length){
+      revShowProgress(false);
+      document.getElementById('revResults').innerHTML =
+        '<div class="rev-empty">🤔 Nenhuma transação encontrada no arquivo.<br>Confira se é o formato certo e tente de novo.</div>';
+      resetRevFileInput();
+      return;
+    }
+
+    revSetStep(2,'active');
+    await tick();
+    const result = checkInvoiceMatch(external);
+    revSetStep(2,'done');
+
+    // Passo 4 — IA só para ambíguos
+    if(result.ambiguous.length){
+      revSetStep(3,'active');
+      await tick();
+      try {
+        await resolveAmbiguousWithAI(result);
+      } catch(err){
+        console.warn('IA ambíguos falhou:', err);
+        // fallback: mantém como ambíguo p/ decisão manual
+      }
+      revSetStep(3,'done');
+    } else {
+      revSetStep(3,'done');
+    }
+
+    revGroups = result;
+    revSetStep(4,'done');
+    await tick(400);
+    revShowProgress(false);
+    renderRevResults();
+  } catch(err){
+    console.error('Revisão falhou:', err);
+    revShowProgress(false);
+    document.getElementById('revResults').innerHTML =
+      '<div class="rev-empty">❌ Erro ao processar o arquivo.<br>'+(err.message||'Tente novamente.')+'</div>';
+  }
+  resetRevFileInput();
+}
+
+const tick = (ms=120)=> new Promise(r=>setTimeout(r,ms));
+
+// ── Leitura de arquivo com fallback de encoding (UTF-8 → ISO-8859-1) ──
+function readFileSmart(file){
+  return new Promise((resolve, reject)=>{
+    const r = new FileReader();
+    r.onerror = ()=>reject(new Error('Não consegui ler o arquivo'));
+    r.onload = ()=>{
+      let txt = r.result;
+      // Heurística: caractere de substituição indica encoding errado
+      if(txt.indexOf('\uFFFD') !== -1){
+        const r2 = new FileReader();
+        r2.onload = ()=>resolve(r2.result);
+        r2.onerror = ()=>resolve(txt);
+        r2.readAsText(file, 'ISO-8859-1');
+      } else {
+        resolve(txt);
+      }
+    };
+    r.readAsText(file, 'UTF-8');
+  });
+}
+
+// ── Parser CSV do C6 — separador ';', decimal ',' ──
+function parseC6CSV(text){
+  const lines = text.split(/\r?\n/).filter(l=>l.trim().length);
+  if(!lines.length) return [];
+
+  // Detecta header e mapeia colunas
+  const headerIdx = lines.findIndex(l=>/data/i.test(l) && /(valor|amount)/i.test(l));
+  const startIdx = headerIdx >= 0 ? headerIdx + 1 : 0;
+  let cols = { date:0, desc:1, amount:-1, parcCur:-1, parcTot:-1 };
+  if(headerIdx >= 0){
+    const h = splitCsvLine(lines[headerIdx]).map(c=>c.toLowerCase().trim());
+    h.forEach((c,i)=>{
+      if(/data/.test(c)) cols.date = i;
+      else if(/desc|t[íi]tulo|estabelec|lan[çc]/.test(c)) cols.desc = i;
+      else if(/valor|amount/.test(c)) cols.amount = i;
+      else if(/parcela/.test(c)) cols.parcCur = i;
+    });
+  }
+
+  const out = [];
+  for(let i=startIdx; i<lines.length; i++){
+    const f = splitCsvLine(lines[i]);
+    if(f.length < 2) continue;
+    const dateRaw = (f[cols.date]||'').trim();
+    const descRaw = (f[cols.desc]||'').trim();
+    let amtRaw = cols.amount >= 0 ? (f[cols.amount]||'') : (f[f.length-1]||'');
+    const date = parseBrDate(dateRaw);
+    const amount = parseBrAmount(amtRaw);
+    if(!date || !amount || amount <= 0) continue;
+
+    // Parcela "X/Y" ou "X de Y" em qualquer coluna
+    let parcCur=null, parcTot=null;
+    const parcStr = cols.parcCur>=0 ? (f[cols.parcCur]||'') : (descRaw+' '+amtRaw);
+    const pm = parcStr.match(/(\d{1,2})\s*(?:\/|de)\s*(\d{1,2})/i);
+    if(pm){ parcCur=parseInt(pm[1]); parcTot=parseInt(pm[2]); }
+
+    out.push({
+      rawName: descRaw || 'Sem descrição',
+      amount: amount,
+      date: date,
+      type: 'despesa',
+      parcCur, parcTot
+    });
+  }
+  return out;
+}
+
+// Split de linha CSV respeitando aspas
+function splitCsvLine(line){
+  const out = []; let cur=''; let inQ=false;
+  for(let i=0;i<line.length;i++){
+    const c=line[i];
+    if(c==='"'){ inQ=!inQ; continue; }
+    if(c===';' && !inQ){ out.push(cur); cur=''; continue; }
+    cur += c;
+  }
+  out.push(cur);
+  return out;
+}
+
+// Data BR (DD/MM/AAAA ou DD/MM) → YYYY-MM-DD
+function parseBrDate(s){
+  if(!s) return '';
+  s = s.trim();
+  // ISO já pronto
+  let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(m) return `${m[1]}-${m[2]}-${m[3]}`;
+  m = s.match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/);
+  if(!m) return '';
+  const dd = m[1].padStart(2,'0');
+  const mm = m[2].padStart(2,'0');
+  let yyyy = m[3];
+  if(!yyyy){ yyyy = String(parseInt(document.getElementById('revYear').value) || new Date().getFullYear()); }
+  else if(yyyy.length===2){ yyyy = '20'+yyyy; }
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+// Valor BR ("1.234,56" / "-50,00" / "R$ 50,00") → número positivo
+function parseBrAmount(s){
+  if(s==null) return 0;
+  s = String(s).replace(/r\$/i,'').replace(/\s/g,'').trim();
+  if(!s) return 0;
+  // Remove sinal (despesa já é positiva no nosso modelo)
+  s = s.replace(/^[+\-]/,'');
+  // Formato BR: ponto = milhar, vírgula = decimal
+  if(s.indexOf(',') !== -1){
+    s = s.replace(/\./g,'').replace(',', '.');
+  }
+  const n = parseFloat(s);
+  return isFinite(n) ? Math.abs(n) : 0;
+}
+
+// ── Extração via IA para prints (reaproveita Worker + safeParseImportJSON) ──
+async function extractFromPrints(files){
+  const images = await Promise.all(files.map(f=>toBase64(f)));
+  const content = [
+    ...images.map(img=>({ type:'image', source:{ type:'base64', media_type:img.type, data:img.data } })),
+    { type:'text', text:
+`Extraia TODAS as transações visíveis nestes prints de fatura/extrato bancário.
+Retorne APENAS um JSON array, sem texto e sem markdown, no formato:
+{"rawName":"nome do estabelecimento como aparece","amount":valor numérico sem R$,"date":"YYYY-MM-DD","type":"despesa"}
+Regras: ano atual 2026; use a data exata do print; ignore itens sem valor claro; não invente nada.` }
+  ];
+  const data = await callAnthropicAPI({ model:'claude-sonnet-4-20250514', max_tokens:4000, messages:[{role:'user',content}] });
+  const raw = data.content?.find(b=>b.type==='text')?.text || '[]';
+  let parsed = safeParseImportJSON(raw);
+  return parsed
+    .filter(it=> it.amount>0 && it.rawName && /^\d{4}-\d{2}-\d{2}$/.test(it.date||''))
+    .map(it=>({ rawName:it.rawName.trim(), amount:it.amount, date:normalizeDate(it.date), type: it.type==='receita'?'receita':'despesa', parcCur:null, parcTot:null }));
+}
+
+// ═══════════════════════════════════════════════════════════
+//  checkInvoiceMatch — hierarquia de 4 passos (NÃO toca checkDuplicate)
+//  Regra: cada lançamento do FinIop só pode ser consumido UMA vez.
+// ═══════════════════════════════════════════════════════════
+function checkInvoiceMatch(external){
+  const m = parseInt(document.getElementById('revMonth').value);
+  const y = parseInt(document.getElementById('revYear').value);
+  // Candidatos: transações do mês/ano de referência ainda não consumidas
+  const candidates = txs
+    .filter(t=>{
+      if(t.type !== 'despesa') return false; // B37: nunca casar com receitas
+      const d = normalizeDate(t.date);
+      const parts = d.split('-');
+      return parseInt(parts[0])===y && (parseInt(parts[1])-1)===m;
+    })
+    .map(t=>({ ...t, _consumed:false }));
+
+  const result = { matched: [], ambiguous: [], missing: [] };
+
+  const sameValue = (a,b)=> Math.abs(a-b) < 0.011;
+  const dayDiff = (d1,d2)=>{
+    const a = new Date(d1+'T12:00:00'), b = new Date(d2+'T12:00:00');
+    return Math.abs(Math.round((a-b)/86400000));
+  };
+
+  // PASSO 2 — match exato (valor + data exata)
+  external.forEach(ext=>{
+    ext._matched = false;
+    // B34: pareamento guloso 1:1 — consome o 1o candidato exato (valor+data) ainda livre
+    const free = candidates.find(c=>!c._consumed && sameValue(c.amount, ext.amount) && normalizeDate(c.date)===normalizeDate(ext.date));
+    if(free){
+      free._consumed = true;
+      ext._matched = true;
+      result.matched.push({ ext, tx: free, approx:false });
+    }
+  });
+
+  // PASSO 3 — match aproximado (±1 dia) só para os sem match exato
+  external.forEach(ext=>{
+    if(ext._matched) return;
+    const cands = candidates.filter(c=>!c._consumed && sameValue(c.amount, ext.amount) && dayDiff(c.date, ext.date) <= 1);
+    if(cands.length === 1){
+      cands[0]._consumed = true;
+      ext._matched = true;
+      result.matched.push({ ext, tx: cands[0], approx:true });
+    } else if(cands.length >= 2){
+      ext._matched = true; // resolvido (ambiguamente) — não vira "não lançado"
+      result.ambiguous.push({ ext, candidates: cands, chosen:null, confidence:null });
+    }
+  });
+
+  // PASSO restante — não lançados
+  external.forEach(ext=>{
+    if(!ext._matched){
+      result.missing.push({ ext });
+    }
+  });
+
+  return result;
+}
+
+// ── Passo 4: IA desempata ambíguos (uma chamada em batch) ──
+async function resolveAmbiguousWithAI(result){
+  if(!result.ambiguous.length) return;
+  const payloadTx = result.ambiguous.map((a,i)=>({
+    transacao_id: 'A'+i,
+    descricao: a.ext.rawName,
+    valor: a.ext.amount,
+    data: a.ext.date,
+    candidatos: a.candidates.map(c=>({ match_id: c.id, descricao: c.desc, data: normalizeDate(c.date) }))
+  }));
+  const prompt =
+`Você ajuda a cruzar transações de fatura de cartão com lançamentos já feitos num app de finanças.
+Cada transação externa abaixo tem 2+ candidatos de mesmo valor e data próxima. Escolha o candidato mais provável de ser o MESMO lançamento (pela descrição e proximidade de data).
+Responda APENAS um JSON array, sem texto e sem markdown:
+[{"transacao_id":"A0","match_id":"<id do candidato escolhido>","confianca":0-100}]
+Se não houver escolha clara, use o candidato de data mais próxima com confianca baixa.
+
+DADOS:
+${JSON.stringify(payloadTx)}`;
+  const data = await callAnthropicAPI({ model:'claude-sonnet-4-20250514', max_tokens:1500, messages:[{role:'user',content:prompt}] });
+  const raw = data.content?.find(b=>b.type==='text')?.text || '[]';
+  const decisions = safeParseImportJSON(raw);
+  decisions.forEach(dec=>{
+    const idx = parseInt((dec.transacao_id||'').replace('A',''));
+    const a = result.ambiguous[idx];
+    if(!a) return;
+    // B33: so candidato livre; se o escolhido pela IA ja foi consumido, usa o proximo livre
+    let chosen = a.candidates.find(c=>c.id===dec.match_id && !c._consumed)
+              || a.candidates.find(c=>!c._consumed);
+    if(chosen){
+      chosen._consumed = true;
+      a.chosen = chosen;
+      a.confidence = typeof dec.confianca==='number' ? dec.confianca : null;
+    } else {
+      a._returnToMissing = true; // nenhum candidato livre -> nao lancado
+    }
+  });
+  // B33: ambiguos sem candidato livre voltam para "nao lancados"
+  for(let k=result.ambiguous.length-1; k>=0; k--){
+    if(result.ambiguous[k]._returnToMissing){
+      result.missing.push({ ext: result.ambiguous[k].ext });
+      result.ambiguous.splice(k,1);
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  RENDER dos resultados
+// ═══════════════════════════════════════════════════════════
+function setRevFilter(f){
+  revFilter = f;
+  document.querySelectorAll('#revFilterRow .rev-filter-pill').forEach(p=>{
+    p.classList.toggle('active', p.dataset.rf===f);
+  });
+  renderRevResults();
+}
+function toggleRevGroup(g){
+  revCollapsed[g] = !revCollapsed[g];
+  renderRevResults();
+}
+
+function renderRevResults(){
+  const nM = revGroups.matched.length;
+  const nA = revGroups.ambiguous.length;
+  const nMiss = revGroups.missing.length;
+
+  // Summary
+  document.getElementById('revSummary').innerHTML =
+    `<div class="rev-summary">
+      <div class="rev-sum-box ok"><div class="rsb-num">${nM}</div><div class="rsb-lbl">✅ lançados</div></div>
+      <div class="rev-sum-box amb"><div class="rsb-num">${nA}</div><div class="rsb-lbl">🔍 verificar</div></div>
+      <div class="rev-sum-box miss"><div class="rsb-num">${nMiss}</div><div class="rsb-lbl">⚠️ não lançados</div></div>
+    </div>`;
+  document.getElementById('revFilterRow').style.display = 'flex';
+
+  const show = g => revFilter==='all' || revFilter===g;
+  let html = '';
+
+  if(show('matched') && nM){
+    html += revGroupHeader('matched', '✅ Já lançados', nM);
+    html += `<div class="rev-group-body${revCollapsed.matched?' collapsed':''}">`;
+    html += revGroups.matched.map(renderMatchedCard).join('');
+    html += '</div>';
+  }
+  if(show('ambiguous') && nA){
+    html += revGroupHeader('ambiguous', '🔍 Verificar', nA);
+    html += `<div class="rev-group-body${revCollapsed.ambiguous?' collapsed':''}">`;
+    html += revGroups.ambiguous.map((a,i)=>renderAmbiguousCard(a,i)).join('');
+    html += '</div>';
+  }
+  if(show('missing') && nMiss){
+    html += revGroupHeader('missing', '⚠️ Não lançados', nMiss);
+    html += `<div class="rev-group-body${revCollapsed.missing?' collapsed':''}">`;
+    html += revGroups.missing.map((m,i)=>renderMissingCard(m,i)).join('');
+    html += '</div>';
+  }
+  if(!html){
+    html = '<div class="rev-empty">Nada para mostrar neste filtro. 🎉</div>';
+  }
+  document.getElementById('revResults').innerHTML = html;
+}
+
+function revGroupHeader(g, label, count){
+  return `<div class="rev-group-hdr${revCollapsed[g]?' collapsed':''}" onclick="toggleRevGroup('${g}')">
+    <span class="rgh-chev">▼</span> ${label} <span class="rgh-count">${count}</span>
+  </div>`;
+}
+
+function fmtBrDate(iso){
+  const p = normalizeDate(iso).split('-');
+  return p.length===3 ? `${p[2]}/${p[1]}` : iso;
+}
+
+function renderMatchedCard(mc){
+  const parc = mc.ext.parcCur ? ` · parcela ${mc.ext.parcCur}/${mc.ext.parcTot}` : '';
+  const note = mc.approx
+    ? `<div class="rev-mc-note">📅 data próxima: lançado em ${fmtBrDate(mc.tx.date)}, fatura em ${fmtBrDate(mc.ext.date)}</div>`
+    : '';
+  return `<div class="rev-match-card ok">
+    <div class="rev-mc-row">
+      <div>
+        <div class="rev-mc-desc">${esc(mc.ext.rawName)}</div>
+        <div class="rev-mc-link">${esc(trunc(mc.tx.desc,28))} <span class="arr">↔</span> ${fmtBrDate(mc.ext.date)}${parc}</div>
+        ${note}
+      </div>
+      <div class="rev-mc-amt">${fmt(mc.ext.amount)}</div>
+    </div>
+  </div>`;
+}
+
+function renderAmbiguousCard(a, i){
+  const chosenTxt = a.chosen
+    ? `<div class="rev-mc-conf">🤖 sugestão: <strong style="color:var(--text)">${esc(trunc(a.chosen.desc,26))}</strong> (${a.confidence!=null?a.confidence+'% confiança':'sem certeza'})</div>`
+    : `<div class="rev-mc-conf">🤖 não foi possível desempatar — confira manualmente</div>`;
+  return `<div class="rev-match-card amb">
+    <div class="rev-mc-row">
+      <div>
+        <div class="rev-mc-desc">${esc(a.ext.rawName)}</div>
+        <div class="rev-mc-link">${a.candidates.length} candidatos · ${fmtBrDate(a.ext.date)}</div>
+        ${chosenTxt}
+      </div>
+      <div class="rev-mc-amt">${fmt(a.ext.amount)}</div>
+    </div>
+    <div class="rev-mc-actions">
+      <button class="rev-mc-btn yes" onclick="revConfirmAmbiguous(${i})">✓ É o mesmo</button>
+      <button class="rev-mc-btn no" onclick="revRejectAmbiguous(${i})">✗ Não é</button>
+    </div>
+  </div>`;
+}
+
+function renderMissingCard(m, i){
+  const parc = m.ext.parcCur ? ` · parcela ${m.ext.parcCur}/${m.ext.parcTot}` : '';
+  return `<div class="rev-match-card miss">
+    <div class="rev-mc-row">
+      <div>
+        <div class="rev-mc-desc">${esc(m.ext.rawName)}</div>
+        <div class="rev-mc-link">${fmtBrDate(m.ext.date)}${parc}</div>
+      </div>
+      <div class="rev-mc-amt">${fmt(m.ext.amount)}</div>
+    </div>
+    <div class="rev-mc-actions">
+      <button class="rev-mc-btn launch" onclick="revLaunchMissing(${i})">＋ Lançar</button>
+    </div>
+  </div>`;
+}
+
+// helpers de exibição
+function esc(s){ return String(s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function trunc(s,n){ s=String(s||''); return s.length>n ? s.slice(0,n-1)+'…' : s; }
+
+// ── Ações dos ambíguos ──
+function revConfirmAmbiguous(i){
+  const a = revGroups.ambiguous[i];
+  if(!a) return;
+  // B33: chosen tem prioridade; fallback = 1o candidato LIVRE (nao candidates[0])
+  const tx = a.chosen || a.candidates.find(c=>!c._consumed);
+  if(!tx){
+    showToast('Candidato já usado em outro pareamento — lance como novo.','err');
+    revGroups.missing.push({ ext: a.ext });
+    revGroups.ambiguous.splice(i,1);
+    renderRevResults();
+    return;
+  }
+  tx._consumed = true;
+  revGroups.matched.push({ ext: a.ext, tx, approx:true });
+  revGroups.ambiguous.splice(i,1);
+  renderRevResults();
+  showToast('✅ Confirmado como já lançado','ok');
+}
+function revRejectAmbiguous(i){
+  const a = revGroups.ambiguous[i];
+  if(!a) return;
+  // candidatos voltam a ficar livres
+  a.candidates.forEach(c=>{ c._consumed=false; });
+  revGroups.missing.push({ ext: a.ext });
+  revGroups.ambiguous.splice(i,1);
+  renderRevResults();
+}
+
+// ── Lançar item não encontrado (pré-popula tela de lançamento) ──
+let _revPendingMissingIdx = null;
+let _revPrevHdrUser = null;
+function revLaunchMissing(i){
+  const m = revGroups.missing[i];
+  if(!m) return;
+  _revPendingMissingIdx = i;
+  // usa o usuário escolhido na aba revisão como header temporário p/ openLaunch
+  _revPrevHdrUser = document.getElementById('hdrAv').textContent;
+  document.getElementById('hdrAv').textContent = revUser;
+  openLaunch(m.ext.type || 'despesa');
+  // pré-popular após abertura
+  setTimeout(()=>{
+    document.getElementById('lsDesc').value = m.ext.rawName;
+    const amt = m.ext.amount;
+    document.getElementById('lsAmt').value = amt;
+    document.getElementById('lsAmtDisplay').textContent = amt.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+    calcExpr = String(amt).replace('.',',');
+    // data
+    lsQuickDate='outros'; lsCustomDate = normalizeDate(m.ext.date);
+    const dpC = document.getElementById('dpCustom');
+    if(dpC){ dpC.style.display='block'; dpC.value = normalizeDate(m.ext.date); }
+    const isD = (m.ext.type||'despesa')==='despesa';
+    document.getElementById('dpHoje').className='dpill';
+    document.getElementById('dpOntem').className='dpill';
+    document.getElementById('dpOutros').className='dpill '+(isD?'active-red':'active-grn');
+  }, 360);
+}
+
+// Após salvar pela tela de lançamento, se veio da revisão, remover da lista
+function revOnLaunchSaved(){
+  if(_revPendingMissingIdx == null) return;
+  const i = _revPendingMissingIdx;
+  _revPendingMissingIdx = null;
+  if(revGroups.missing[i]) revGroups.missing.splice(i,1);
+  renderRevResults();
+}
+
 function checkDuplicate(amount, date){
   const nd = normalizeDate(date);
   // Duplicata: mesmo valor E mesma data exata
@@ -4043,5 +4730,3 @@ init();
     </div>
   </div>
 </div>
-
-
