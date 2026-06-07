@@ -405,6 +405,40 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .cconfirm-btn.cc-all{background:var(--rdim);color:var(--red);border:1px solid var(--rborder)}
 .cconfirm-btn.cc-all:hover{background:var(--red);color:#fff}
 .cconfirm-btn .cc-desc{display:block;font-size:11px;font-weight:400;opacity:.7;margin-top:2px}
+/* v22: confirm positivo + escopo */
+.cconfirm-btn.cc-ok{background:var(--gdim);color:var(--green);border:1px solid var(--gborder)}
+.cconfirm-btn.cc-ok:hover{background:var(--green);color:#0d0f14}
+.cconfirm-btn.cc-ok:disabled{cursor:not-allowed}
+.cconfirm-btn.cc-info{background:var(--bdim);color:var(--blue);border:1px solid var(--bborder)}
+.cconfirm-btn.cc-info:hover{background:var(--blue);color:#fff}
+/* v22: botao Limpar geral */
+.clear-all-pill{border:1px solid var(--rborder);background:var(--rdim);color:var(--red);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .2s;flex-shrink:0;font-family:'DM Sans',sans-serif;align-items:center}
+.clear-all-pill:hover{background:var(--red);color:#fff}
+/* v22: modal de ajuste granular de serie */
+.ge-top{background:var(--surf2);border:1px solid var(--border);border-radius:var(--rs);padding:11px;margin-bottom:10px;display:flex;flex-direction:column;gap:6px}
+.ge-lbl{font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.3px}
+.ge-desc-inp{background:var(--surf);border:1px solid var(--border);border-radius:var(--rs);padding:9px 10px;font-size:13px;color:var(--text);font-family:'DM Sans',sans-serif;outline:none;-webkit-appearance:none}
+.ge-catchip{background:var(--surf);border:1px solid var(--border);border-radius:var(--rs);padding:8px 10px;font-size:12px;color:var(--muted2)}
+.ge-users{display:flex;gap:6px}
+.ge-user{width:34px;height:34px;border-radius:50%;border:1px solid var(--border);background:var(--surf);color:var(--muted2);font-weight:700;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s}
+.ge-user.active{background:var(--bdim);border-color:var(--blue);color:var(--blue)}
+.ge-applyall{width:100%;background:var(--bdim);border:1px solid var(--bborder);color:var(--blue);border-radius:var(--rs);padding:9px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s}
+.ge-applyall:hover{background:var(--blue);color:#fff}
+.ge-row{display:flex;align-items:center;gap:9px;background:var(--surf2);border:1px solid var(--border);border-radius:10px;padding:8px 10px}
+.ge-row.ge-err{border-color:var(--red)}
+.ge-row.unlocked{border-color:var(--amber)}
+.ge-chk{width:18px;height:18px;flex-shrink:0;accent-color:var(--green)}
+.ge-mid{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.ge-date{font-size:12px;color:var(--text);font-weight:600}
+.ge-tag{font-size:10px;font-weight:600;margin-left:4px}
+.ge-tag.paid{color:var(--green)}
+.ge-tag.fut{color:var(--blue)}
+.ge-warn{font-size:10px;color:var(--amber)}
+.ge-unlock{align-self:flex-start;background:transparent;border:none;color:var(--amber);font-size:10px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:underline;padding:0}
+.ge-valwrap{display:flex;align-items:center;gap:3px;flex-shrink:0}
+.ge-sign{font-size:13px;color:var(--muted2)}
+.ge-val{width:92px;background:var(--surf);border:1px solid var(--border);border-radius:8px;padding:7px 8px;font-size:13px;color:var(--text);font-family:'DM Sans',sans-serif;text-align:right;outline:none;-webkit-appearance:none}
+.ge-val:disabled{opacity:.5}
 
 /* ── IMPORT SCREEN ── */
 .import-screen{position:fixed;inset:0;background:var(--bg);z-index:200;display:none;flex-direction:column;max-width:430px;margin:0 auto;animation:fadeInUp .25s ease}
@@ -733,6 +767,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   </div>
   <!-- FILTER PILLS -->
   <div class="filter-row">
+    <button class="clear-all-pill" id="clearAllPill" onclick="clearAllFilters()" style="display:none">✕ Limpar</button>
     <button class="f-pill active" id="fAll" onclick="setFilter('all')">Todos</button>
     <button class="f-pill" id="fRec" onclick="setFilter('receita')">📈 Receitas</button>
     <button class="f-pill" id="fDesp" onclick="setFilter('despesa')">📉 Despesas</button>
@@ -1185,6 +1220,33 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   </div>
 </div>
 
+<!-- v22: AJUSTE GRANULAR DE SÉRIE -->
+<div class="cconfirm-overlay" id="geOverlay">
+  <div class="cconfirm-box" style="max-width:430px">
+    <div class="cconfirm-title">Ajustar série</div>
+    <div class="cconfirm-msg" id="geMsg" style="margin-bottom:12px"></div>
+    <div class="ge-top">
+      <label class="ge-lbl">Descrição (aplica aos marcados)</label>
+      <input type="text" class="ge-desc-inp" id="geDesc" placeholder="Descrição">
+      <label class="ge-lbl">Categoria (definida no formulário)</label>
+      <div class="ge-catchip" id="geCatChip"></div>
+      <label class="ge-lbl">Usuário (aplica aos marcados)</label>
+      <div class="ge-users" id="geUsers">
+        <button type="button" class="ge-user" data-u="E">E</button>
+        <button type="button" class="ge-user" data-u="C">C</button>
+        <button type="button" class="ge-user" data-u="S">S</button>
+      </div>
+    </div>
+    <button type="button" class="ge-applyall" id="geApplyAll">↡ Aplicar valor digitado a todos marcados</button>
+    <div id="geList" style="max-height:38vh;overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;gap:6px;margin:10px 0 8px"></div>
+    <div id="geNotice" style="display:none;color:var(--red);font-size:12px;margin-bottom:10px">Selecione ao menos um mês.</div>
+    <div class="cconfirm-btns">
+      <button class="cconfirm-btn cc-ok" id="geOk"><strong>Confirmar e salvar série</strong></button>
+      <button class="cconfirm-btn cc-cancel" id="geCancel"><strong>Cancelar</strong></button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ═══════════════════════════════════════
 //  SUPABASE
@@ -1310,7 +1372,7 @@ function findCat(type,catId){
   return getCats(type).find(c=>c.id===catId)||getCats(type==='despesa'?'receita':'despesa').find(c=>c.id===catId)||{icon:'📦',name:'Sem categoria'};
 }
 function findSub(cat,subId){return cat?.subs?.find(s=>s.id===subId);}
-function changeMonth(d){curMonth+=d;if(curMonth>11){curMonth=0;curYear++;}if(curMonth<0){curMonth=11;curYear--;}sortMode='default';searchMode='desc';searchQuery='';activeUserFilter='all';const _si=document.getElementById('searchInp');if(_si)_si.value='';const _sc=document.getElementById('searchClear');if(_sc)_sc.style.display='none';syncUserFilterBtn();render();}
+function changeMonth(d){curMonth+=d;if(curMonth>11){curMonth=0;curYear++;}if(curMonth<0){curMonth=11;curYear--;}render();}
 function getMonthTxs(){return txs.filter(t=>{const d=new Date(t.date+'T12:00:00');return d.getMonth()===curMonth&&d.getFullYear()===curYear;});}
 function showToast(msg,type='ok'){const el=document.getElementById('toast');el.textContent=msg;el.className='toast '+type+' show';setTimeout(()=>el.className='toast',2800);}
 
@@ -1368,6 +1430,168 @@ function seriesPreview(title, msg, items){
     ok.onclick=()=>close(true);
     cancel.onclick=()=>close(false);
     document.getElementById('spOverlay').classList.add('open');
+  });
+}
+
+// ═══════════════════════════════════════
+//  v22: AJUSTE GRANULAR DE SÉRIE (escopo + preview editável)
+// ═══════════════════════════════════════
+// Recebe os membros reais (priorList), o membro tocado e os campos do formulário.
+// Retorna o GRUPO INTEIRO com as edições aplicadas (ou null se cancelado em qualquer passo).
+async function planGranularEdit(priorList, tappedTx, form){
+  // PASSO 1 — escopo (antes do preview)
+  const scope = await customConfirm(
+    'Escopo da edição',
+    `Esta série tem ${priorList.length} lançamento(s). Quais deseja ajustar?`,
+    [
+      {label:'Só este mês', desc:'Apenas o lançamento atual', cls:'cc-info', value:'one'},
+      {label:'Deste mês em diante', desc:'Este e os próximos da série', cls:'cc-info', value:'onward'},
+      {label:'Toda a série', desc:'Todos os meses', cls:'cc-info', value:'all'},
+      {label:'Cancelar', desc:'', cls:'cc-cancel', value:'cancel'},
+    ]
+  );
+  if(!scope || scope==='cancel') return null;
+
+  const anchor = tappedTx.date;
+  let inScope;
+  if(scope==='one') inScope = priorList.filter(m=>m.id===tappedTx.id);
+  else if(scope==='onward') inScope = priorList.filter(m=>m.date>=anchor);
+  else inScope = priorList.slice();
+
+  // PASSO 2 — preview granular editável
+  const result = await seriesGranularEdit(inScope, tappedTx, form);
+  if(!result) return null;
+
+  // PASSO 3 — grupo final: aplica edições aos INCLUÍDOS; preserva exatamente o resto
+  const editMap = new Map(result.applied.map(a=>[a.id,a]));
+  return priorList.map(m=>{
+    const a = editMap.get(m.id);
+    if(a){
+      const isTapped = m.id===tappedTx.id;
+      return {
+        ...m,
+        amount:a.amount,
+        desc:result.top.desc, catId:result.top.catId, subId:result.top.subId, user:result.top.user,
+        // v22b: pago e aConfirmar do formulario aplicados ao membro tocado;
+        // demais membros incluidos preservam os seus proprios
+        pago:       isTapped ? form.pago       : m.pago,
+        aConfirmar: isTapped ? form.aConfirmar : m.aConfirmar,
+        __changed:true
+      };
+    }
+    return {...m, __changed:false};
+  });
+}
+
+// Modal editável: checkbox + valor por membro; pago bloqueado (🔒) por default e desbloqueável;
+// campos de topo (descrição/usuário) aplicam aos marcados. Categoria vem do formulário.
+function seriesGranularEdit(inScope, tappedTx, form){
+  return new Promise(resolve=>{
+    const ov=document.getElementById('geOverlay');
+    const listEl=document.getElementById('geList');
+    const descInp=document.getElementById('geDesc');
+    const catChip=document.getElementById('geCatChip');
+    const noticeEl=document.getElementById('geNotice');
+    const okBtn=document.getElementById('geOk');
+    const cancelBtn=document.getElementById('geCancel');
+    const applyAllBtn=document.getElementById('geApplyAll');
+    const msgEl=document.getElementById('geMsg');
+
+    let topUser = form.user;
+    descInp.value = form.desc || '';
+    const cat=findCat(form.type, form.catId)||{icon:'📦',name:'Sem categoria'};
+    const sub=findSub(cat, form.subId);
+    catChip.innerHTML = `${cat.icon} ${cat.name}${sub?` · ${sub.icon||''} ${sub.name}`:''}`;
+    msgEl.textContent = `${inScope.length} mês(es) no escopo. Pagos vêm bloqueados (🔒). Desmarque o que não quiser alterar.`;
+
+    const userBtns=document.querySelectorAll('#geUsers .ge-user');
+    userBtns.forEach(b=>{
+      b.onclick=()=>{ topUser=b.dataset.u; userBtns.forEach(x=>x.classList.toggle('active', x.dataset.u===topUser)); };
+      b.classList.toggle('active', b.dataset.u===topUser);
+    });
+
+    const fmtNum=v=>Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+    listEl.innerHTML = inScope.map(m=>{
+      const d=new Date(m.date+'T12:00:00');
+      const dateLbl=d.toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'2-digit'});
+      const isTapped = m.id===tappedTx.id;
+      const val = isTapped ? form.amount : m.amount;
+      const paid = !!m.pago;
+      const sign = m.type==='despesa'?'−':'+';
+      return `<div class="ge-row" data-id="${m.id}" data-paid="${paid?'1':'0'}">
+        <input type="checkbox" class="ge-chk" ${paid?'':'checked'}>
+        <div class="ge-mid">
+          <div class="ge-date">${dateLbl} ${paid?'<span class="ge-tag paid">✅ pago 🔒</span>':'<span class="ge-tag fut">a pagar</span>'}</div>
+          <div class="ge-warn" style="display:none">⚠️ este mês já foi pago</div>
+          ${paid?'<button type="button" class="ge-unlock">Editar mesmo assim</button>':''}
+        </div>
+        <div class="ge-valwrap">
+          <span class="ge-sign">${sign}</span>
+          <input type="text" inputmode="decimal" class="ge-val" value="${fmtNum(val)}" ${paid?'disabled':''}>
+        </div>
+      </div>`;
+    }).join('');
+
+    const rows=Array.from(listEl.querySelectorAll('.ge-row'));
+    rows.forEach(row=>{
+      const chk=row.querySelector('.ge-chk');
+      const valInp=row.querySelector('.ge-val');
+      const unlock=row.querySelector('.ge-unlock');
+      const warn=row.querySelector('.ge-warn');
+      chk.onchange=syncOk;
+      if(unlock){
+        unlock.onclick=()=>{
+          valInp.disabled=false;
+          warn.style.display='block';
+          chk.checked=true;
+          unlock.style.display='none';
+          row.classList.add('unlocked');
+          syncOk();
+        };
+      }
+    });
+
+    function syncOk(){
+      const anyChecked = rows.some(r=>r.querySelector('.ge-chk').checked);
+      okBtn.disabled=!anyChecked;
+      okBtn.style.opacity=anyChecked?'1':'.45';
+      if(!anyChecked){ noticeEl.textContent='Selecione ao menos um mês.'; noticeEl.style.display='block'; }
+      else { noticeEl.style.display='none'; }
+    }
+    syncOk();
+
+    applyAllBtn.onclick=()=>{
+      rows.forEach(r=>{
+        const chk=r.querySelector('.ge-chk');
+        const valInp=r.querySelector('.ge-val');
+        if(chk.checked && !valInp.disabled){ valInp.value=fmtNum(form.amount); }
+      });
+    };
+
+    const close=(v)=>{ ov.classList.remove('open'); okBtn.onclick=null; cancelBtn.onclick=null; applyAllBtn.onclick=null; resolve(v); };
+
+    okBtn.onclick=()=>{
+      const applied=[];
+      for(const r of rows){
+        const chk=r.querySelector('.ge-chk');
+        if(!chk.checked){ r.classList.remove('ge-err'); continue; }
+        const valInp=r.querySelector('.ge-val');
+        const amt=parseSearchValue(valInp.value);
+        if(isNaN(amt)||amt<=0){
+          r.classList.add('ge-err');
+          noticeEl.textContent='Há um valor inválido. Corrija para continuar.';
+          noticeEl.style.display='block';
+          return;
+        }
+        r.classList.remove('ge-err');
+        applied.push({id:r.dataset.id, amount:amt});
+      }
+      if(!applied.length){ noticeEl.textContent='Selecione ao menos um mês.'; noticeEl.style.display='block'; return; }
+      close({applied, top:{desc:(descInp.value.trim()||form.desc), catId:form.catId, subId:form.subId, user:topUser}});
+    };
+    cancelBtn.onclick=()=>close(null);
+    ov.classList.add('open');
   });
 }
 
@@ -1516,6 +1740,23 @@ function clearSearch(){
   document.getElementById('searchClear').style.display='none';
   renderTxList();
 }
+// v22: reset geral de busca + filtros (so via botao explicito; NAO roda mais ao trocar de mes)
+function clearAllFilters(){
+  const inp=document.getElementById('searchInp');if(inp)inp.value='';
+  searchQuery='';
+  searchMode='desc';
+  sortMode='default';
+  activeUserFilter='all';
+  const sc=document.getElementById('searchClear');if(sc)sc.style.display='none';
+  setFilter('all'); // reaplica classes dos pills de filtro + renderiza (syncHomeControls sincroniza o resto)
+}
+// v22: mostra "Limpar" apenas quando ha algo fora do default
+function syncClearBtn(){
+  const btn=document.getElementById('clearAllPill');
+  if(!btn)return;
+  const dirty = searchQuery!=='' || activeFilter!=='all' || searchMode!=='desc' || activeUserFilter!=='all' || sortMode!=='default';
+  btn.style.display=dirty?'inline-flex':'none';
+}
 function filterTxs(list){
   return list.filter(t=>{
     // U11: busca por modo (desc | cat | value)
@@ -1573,6 +1814,7 @@ function syncHomeControls(){
   const inp=document.getElementById('searchInp');
   if(inp)inp.placeholder=searchMode==='cat'?'Buscar por categoria...':searchMode==='value'?'Ex: 224,08':'Buscar por descrição...';
   syncUserFilterBtn();
+  syncClearBtn();
 }
 function toggleSort(){sortMode=sortMode==='value'?'default':'value';renderTxList();}
 function setSearchMode(m){
@@ -2194,6 +2436,11 @@ async function submitLaunch(){
       if(repeat){ targetN=repeatN; targetUnit=lsRepeatUnit; }
       else if(fixo){ targetN=12; targetUnit='mensal'; }
       else { targetN=1; targetUnit=null; }
+      // v22: ajuste (mesma estrutura) vs mudanca estrutural
+      const structUnchanged = wasSeriesLocal && tx
+        && (repeat === !!tx.repeat)
+        && (fixo === !!tx.fixo)
+        && (!repeat || (repeatN === tx.repeatN && lsRepeatUnit === tx.repeatUnit));
 
       if(!wasSeriesLocal && targetN===1){
         // FAST PATH: lançamento simples que continua simples → patch direto
@@ -2208,6 +2455,42 @@ async function submitLaunch(){
         const idx=txs.findIndex(t=>t.id===editingTxId);
         if(idx>=0)txs[idx]={...txs[idx],...rowToTx({id:editingTxId,group_id:tx?.group_id||editingTxId,...patch}),desc:descFinal};
         showToast('✅ Lançamento atualizado!','ok');
+      } else if(structUnchanged){
+        // ═══════════════ AJUSTE GRANULAR DE SÉRIE (v22) ═══════════════
+        let priorList=[];
+        try{
+          const dbRows=await sbGet('transactions',`group_id=eq.${tx.group_id}&select=*&order=date.asc,created_at.asc`);
+          priorList=dbRows.map(rowToTx).sort((a,b)=>a.date.localeCompare(b.date));
+        }catch(e){
+          priorList=localGroup.slice().sort((a,b)=>a.date.localeCompare(b.date));
+        }
+        if(!priorList.length) priorList=[tx];
+
+        const plan = await planGranularEdit(priorList, tx, {
+          type:lsType, amount, desc:descFinal, obs,
+          catId:lsSelCatId, subId:lsSelSubId||null, user:lsUser,
+          pago, aConfirmar          // v22b: permitir marcar/desmarcar Pago do membro tocado
+        });
+        if(!plan){ return; } // cancelado em qualquer passo
+
+        // ATOMICIDADE: insere grupo novo ANTES de deletar o antigo
+        const newGroupId='g_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
+        const k=plan.length;
+        const newTxs=plan.map((m,i)=>({
+          ...m, id:uid(), group_id:newGroupId,
+          repeatIndex: k>1?i+1:null, repeatTotal: k>1?k:null
+        }));
+        setSyncStatus('syncing','Salvando série...');
+        const rowsToInsert=newTxs.map(txToRow);
+        await sbPostBatch('transactions',rowsToInsert);
+        await sbDeleteMany('transactions',tx.group_id);
+
+        const oldIds=new Set(priorList.map(m=>m.id)); oldIds.add(tx.id);
+        txs=txs.filter(t=>!oldIds.has(t.id));
+        rowsToInsert.forEach(r=>txs.push(rowToTx(r)));
+        setSyncStatus('ok','Sincronizado ✓');
+        const nCh=plan.filter(m=>m.__changed).length;
+        showToast(`✅ Série atualizada — ${nCh} mês(es) alterado(s)`,'ok');
       } else {
         // ═══════════════ REPLACE PATTERN ═══════════════
         // 1) Buscar membros reais do grupo no Supabase (fonte autoritativa)
