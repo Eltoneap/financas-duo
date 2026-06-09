@@ -343,6 +343,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .scp-back{background:var(--surf2);border:1px solid var(--border);border-radius:20px;padding:6px 14px;font-size:13px;color:var(--muted2);cursor:pointer;transition:all .2s}
 .scp-back:hover{color:var(--text)}
 .scp-title{font-weight:700;font-size:16px;flex:1}
+.scp-search-wrap{padding:10px 14px 0}
+.scp-search{width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;padding:9px 12px;outline:none;transition:border-color .2s}
+.scp-search:focus{border-color:var(--blue)}
+.scp-search::placeholder{color:var(--muted)}
 .scp-body{flex:1;overflow-y:auto;padding:12px 14px 20px}
 .scp-cat-section{margin-bottom:14px}
 .scp-cat-hdr{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surf);border:1px solid var(--border);border-radius:var(--rs) var(--rs) 0 0;cursor:pointer;transition:background .15s}
@@ -1147,7 +1151,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="scp-title">Selecionar categoria</div>
   </div>
   <!-- U5: nova categoria/sub sem fechar lançamento -->
-  <div style="padding:10px 14px 0">
+  <div class="scp-search-wrap">
+    <input type="text" class="scp-search" id="scpSearch" placeholder="Buscar categoria..." oninput="filterSubcatPicker(this.value)">
+  </div>
+  <div style="padding:8px 14px 0">
     <button class="btn-new-cat" onclick="openNewCatFromPicker()" style="width:100%;margin:0;padding:11px;font-size:13px">＋ Nova categoria</button>
   </div>
   <div class="scp-body" id="scpBody"></div>
@@ -1321,7 +1328,7 @@ const DEF_R=[
   {id:'outros_r',icon:'💰',name:'Outros',def:true,subs:[]},
 ];
 
-const EMOJIS=[...'🛒🍔🍕🍣☕🎂🥩🚗✈️⛽🚲🛵🚢🏥💊🧴💉🏋️🧘🦷🎬🎮🎵🎭🏖️🎲📱🏠🛋️💡🔧🧹🔑📚🎓✏️🖥️📖🧪🎨👕👗👠👜💍🕶️🧥💼💰📈🎁🏘️💎🪙🤝🐶🐱🐾🌸⚽🏀🎸🎤💇💅🧖🌍🎪🛍️📦🔮⭐🌈🍀🎯🏆🎡🌮🧁🥂🪴🎻🏄🧳🦋🎀🍷🚀🎠🦄👦👧🧒'];
+const EMOJIS=[...'🛒🍔🍕🍣☕🥩🚗✈️⛽🚲🛵🚢🏥💊🧴💉🏋️🧘🦷🎬🎮🎵🎭🏖️📱🏠🛋️💡🔧🧹🔑📚🎓✏️🖥️📖🧪🎨👕👗👠👜💍🕶️🧥💼💰📈🎁🏘️💎🪙🤝🐶🐱🐾🌸⚽🏀🎸🎤💇💅🧖🌍🎪🛍️📦🔮⭐🌈🍀🎯🏆🎡🌮🧁🥂🪴🎻🏄🧳🦋🎀🍷🚀🎠🦄👦👧🧒🍱🥗🍜🥐🫙🍰🧇🥞🫕🍲🚕🚌🛺🚁🅿️🛣️🚦🩺🩻🧬🩹🩼🫀🧠🏃🐠🐇🦮🪺🦴🐈🦜🔬🖊️📐🧮🎒🛏️🚿🪣🧺🪟🔒🛁🎳🏊🧗🎟️🎦👟👒🧢👔🩱👙💳🏦📊🧾📋💻🖨️🎉🎊💝🙏🫶🤲🌿🌺🍃☀️🌙🌊'];
 const COLORS=['#ff4e6a','#ff9f4e','#ffd166','#06d6a0','#4e9eff','#b57bee','#ff6eb4','#8892b0'];
 const MONTHS=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
@@ -2314,7 +2321,19 @@ function hideCatSuggest(){
 }
 
 // SUBCAT PICKER
+function filterSubcatPicker(q){
+  q=q.trim().toLowerCase();
+  const sections=document.querySelectorAll('#scpBody .scp-cat-section');
+  sections.forEach(sec=>{
+    if(!q){sec.style.display='';return;}
+    const catName=sec.querySelector('.scp-cat-name')?.textContent.toLowerCase()||'';
+    const subNames=Array.from(sec.querySelectorAll('.scp-sub-name')).map(el=>el.textContent.toLowerCase());
+    const match=catName.includes(q)||subNames.some(n=>n.includes(q));
+    sec.style.display=match?'':'none';
+  });
+}
 function openSubcatPicker(){
+  document.getElementById('scpSearch').value='';
   const cats=getCats(lsType);
   document.getElementById('scpBody').innerHTML=cats.map(cat=>{
     const subs=cat.subs||[];
