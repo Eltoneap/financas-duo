@@ -135,6 +135,23 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .tx-amt{font-weight:700;font-size:14px;white-space:nowrap;letter-spacing:-0.2px}
 .tx-edit-ico{font-size:11px;color:var(--muted);opacity:0;transition:opacity .2s}
 .tx-item:hover .tx-edit-ico{opacity:1}
+/* v24: swipe nos cards */
+.swipe-wrap{position:relative;overflow:hidden;border-radius:var(--rs);margin-bottom:7px;touch-action:pan-y}
+.swipe-wrap .tx-item{margin-bottom:0;position:relative;z-index:1;transition:transform .22s cubic-bezier(.2,.8,.2,1);will-change:transform}
+.swipe-wrap .tx-item.dragging{transition:none}
+.swipe-wrap .tx-item:hover{transform:none}
+.swipe-back{position:absolute;inset:0;display:flex;align-items:stretch;z-index:0}
+.back-pago{flex:1;background:var(--gdim);display:flex;align-items:center;padding-left:20px;font-size:18px}
+.back-pago.undo{background:var(--rdim)}
+.back-actions{position:absolute;right:0;top:0;bottom:0;display:flex;gap:5px;align-items:center;padding-right:5px}
+.sw-act{border:none;border-radius:9px;height:calc(100% - 6px);width:60px;font-family:'DM Sans',sans-serif;font-size:10px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.sw-act span{font-size:15px}
+.sw-edit{background:var(--bdim);color:var(--blue);border:1px solid var(--bborder)}
+.sw-del{background:var(--rdim);color:var(--red);border:1px solid var(--rborder)}
+.pago-toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--surf2);border:1px solid var(--gborder);color:var(--green);border-radius:20px;padding:10px 8px 10px 16px;font-size:13px;z-index:600;opacity:0;transition:all .3s;display:flex;align-items:center;gap:10px;max-width:92%;box-shadow:0 8px 30px rgba(0,0,0,.5);pointer-events:none}
+.pago-toast.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
+.pago-toast.undo{color:var(--red);border-color:var(--rborder)}
+.pago-toast .pt-undo{background:var(--surf3);border:1px solid var(--border);color:var(--text);font-family:'DM Sans',sans-serif;font-weight:700;font-size:12px;border-radius:14px;padding:6px 13px;cursor:pointer;flex-shrink:0}
 .empty-st{text-align:center;padding:36px 20px;color:var(--muted)}
 .empty-st .ei{font-size:38px;margin-bottom:10px}
 .empty-st p{font-size:13px;line-height:1.6}
@@ -1204,6 +1221,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 </div>
 
 <div class="toast" id="toast"></div>
+<div class="pago-toast" id="pagoToast"><span id="ptMsg"></span><button class="pt-undo" id="ptUndo" onclick="_undoPago()">Desfazer</button></div>
 
 <!-- CUSTOM CONFIRM MODAL -->
 <div class="cconfirm-overlay" id="ccOverlay">
@@ -1263,7 +1281,7 @@ const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZ
 const SB_HDR={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'};
 
 async function sbGet(table,query=''){
-  const r=await fetch(`${SB_URL}/rest/v1/${table}?${query}`,{headers:SB_HDR});
+  const r=await fetch(`${SB_URL}/rest/v1/${table}?${query}`,{headers:{...SB_HDR,'Cache-Control':'no-store'}});
   if(!r.ok)throw new Error(await r.text());
   return r.json();
 }
@@ -1855,7 +1873,15 @@ function txItemHTML(t,showDate){
   if(t.aConfirmar)badges+='<span class="tx-badge b-aconf">❓</span>';
   let dateChip='';
   if(showDate){const dd=new Date(t.date+'T12:00:00');dateChip=`<span class="tx-date-mini">${dd.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}</span>`;}
-  return `<div class="tx-item" onclick="openLaunch('${t.type}','${t.id}')">
+  return `<div class="swipe-wrap" data-id="${t.id}" data-type="${t.type}">
+      <div class="swipe-back">
+        <div class="back-pago"><span class="bk-ico">✅</span></div>
+        <div class="back-actions">
+          <button class="sw-act sw-edit"><span>✏️</span>Editar</button>
+          <button class="sw-act sw-del"><span>🗑️</span>Excluir</button>
+        </div>
+      </div>
+      <div class="tx-item" data-id="${t.id}" data-type="${t.type}">
         <div class="tx-ico" style="background:${bg}">${cat.icon}</div>
         <div class="tx-info">
           <div class="tx-name">${t.desc||cat.name}</div>
@@ -1866,7 +1892,8 @@ function txItemHTML(t,showDate){
           <div class="tx-amt" style="color:${clr}">${sign} ${fmt(t.amount)}</div>
           <span class="tx-edit-ico">✏️</span>
         </div>
-      </div>`;
+      </div>
+    </div>`;
 }
 function renderTxList(){
   syncHomeControls();
@@ -1883,6 +1910,7 @@ function renderTxList(){
   if(sortMode==='value'){
     list.forEach(t=>{html+=txItemHTML(t,true);});
     el.innerHTML=html;
+    attachSwipe();
     return;
   }
   const groups={};
@@ -1893,7 +1921,191 @@ function renderTxList(){
     items.forEach(t=>{html+=txItemHTML(t,false);});
   });
   el.innerHTML=html;
+  attachSwipe();
 }
+/*__TEST_HELPERS_START__*/
+// ═══════════════════════════════════════
+//  v24 / v27 / B46 / B47 — swipe + toggles de série
+// ═══════════════════════════════════════
+
+// Predicado: numa série, mudou SÓ o Pago e/ou o A confirmar? (testável)
+function _onlyTogglesChanged(tx, f){
+  return !!(f.wasSeries && tx
+    && (f.amount===tx.amount)
+    && ((f.desc||'')===(tx.desc||''))
+    && (f.catId===tx.catId)
+    && ((f.subId||null)===(tx.subId||null))
+    && (f.user===tx.user)
+    && ((f.obs||'')===(tx.obs||''))
+    && (f.date===tx.date)
+    && (f.fixo===!!tx.fixo)
+    && (f.repeat===!!tx.repeat)
+    && (!f.repeat || (f.repeatN===tx.repeatN && f.repeatUnit===tx.repeatUnit))
+    && ((f.pago!==tx.pago) || (f.aConfirmar!==!!tx.aConfirmar)));
+}
+
+// Modal simples de escopo (Só este / Este e os futuros) — usado só p/ o ❓
+async function seriesScopePrompt(kind){
+  const label = kind==='aconf' ? '❓ A confirmar' : '✅ Pago';
+  const r = await customConfirm(
+    'Alterar '+label,
+    'Este lançamento faz parte de uma série. Aplicar em quais?',
+    [
+      {label:'Só este lançamento', desc:'Apenas este mês', cls:'cc-info', value:'one'},
+      {label:'Este e os futuros', desc:'Este mês e os seguintes da série', cls:'cc-future', value:'onward'},
+      {label:'Cancelar', desc:'', cls:'cc-cancel', value:'cancel'},
+    ]
+  );
+  return (!r || r==='cancel') ? null : r;
+}
+
+// Aplica UM campo (pago | a_confirmar) num escopo de série, com PATCH individual por membro
+async function applyFieldScope(tx, dbField, value, scope){
+  const group = tx.group_id ? txs.filter(t=>t.group_id===tx.group_id) : [tx];
+  const targets = scope==='onward' ? group.filter(t=>t.date>=tx.date) : [tx];
+  setSyncStatus('syncing','Salvando...');
+  for(const t of targets){
+    await sbPatch('transactions', t.id, {[dbField]: value});
+    const i = txs.findIndex(x=>x.id===t.id);
+    if(i>=0){ if(dbField==='pago') txs[i].pago=value; else txs[i].aConfirmar=value; }
+  }
+  try{ localStorage.setItem('fd_txs_bk', JSON.stringify(txs)); }catch(e){}
+  setSyncStatus('ok','Sincronizado \u2713');
+  return targets.length;
+}
+
+// Edição em que SÓ ✅/❓ mudaram: ❓ pede escopo; ✅ é sempre só este (nunca propaga)
+async function applySeriesToggleEdit(tx, newPago, newAconf){
+  const pagoChanged  = newPago !== tx.pago;
+  const aconfChanged = newAconf !== !!tx.aConfirmar;
+  if(aconfChanged){
+    const scope = await seriesScopePrompt('aconf');
+    if(!scope) return false; // escopo cancelado
+    await applyFieldScope(tx, 'a_confirmar', newAconf, scope);
+  }
+  if(pagoChanged){
+    await applyFieldScope(tx, 'pago', newPago, 'one');
+  }
+  const parts=[];
+  if(aconfChanged) parts.push('\u2753 atualizado');
+  if(pagoChanged)  parts.push('\u2705 pago atualizado');
+  showToast(parts.join(' \u00b7 ')||'Atualizado','ok');
+  return true;
+}
+
+// Swipe-direita: toggle de Pago (sempre só este) com Desfazer de 5s antes de salvar
+let _pendingPago=null, _pagoTimer=null;
+function quickTogglePago(id){
+  const tx = txs.find(t=>t.id===id);
+  if(!tx) return;
+  _flushPagoUndo();                 // confirma toggle anterior pendente, se houver
+  const prev = tx.pago;
+  tx.pago = !tx.pago;               // aplica visual já
+  try{ localStorage.setItem('fd_txs_bk', JSON.stringify(txs)); }catch(e){}
+  render();
+  _pendingPago = {id, prev};
+  const el=document.getElementById('pagoToast'), msg=document.getElementById('ptMsg');
+  if(el){ el.className='pago-toast show'+(tx.pago?'':' undo'); }
+  if(msg){ msg.textContent = tx.pago ? 'Marcado como pago \u2713' : 'Marcado como N\u00c3O pago \u2713'; }
+  clearTimeout(_pagoTimer);
+  _pagoTimer = setTimeout(_flushPagoUndo, 5000);
+}
+async function _flushPagoUndo(){
+  if(!_pendingPago) return;
+  const {id} = _pendingPago; _pendingPago=null;
+  clearTimeout(_pagoTimer);
+  const el=document.getElementById('pagoToast'); if(el) el.className='pago-toast';
+  const tx = txs.find(t=>t.id===id); if(!tx) return;
+  try{
+    setSyncStatus('syncing','Salvando...');
+    await sbPatch('transactions', id, {pago: tx.pago});
+    setSyncStatus('ok','Sincronizado \u2713');
+  }catch(e){ setSyncStatus('err','Erro'); showToast('Erro ao salvar pago','err'); }
+}
+function _undoPago(){
+  if(!_pendingPago) return;
+  const {id, prev} = _pendingPago; _pendingPago=null;
+  clearTimeout(_pagoTimer);
+  const tx = txs.find(t=>t.id===id);
+  if(tx){ tx.pago=prev; try{ localStorage.setItem('fd_txs_bk', JSON.stringify(txs)); }catch(e){} render(); }
+  const el=document.getElementById('pagoToast'); if(el) el.className='pago-toast';
+}
+
+// Liga os gestos de swipe nos cards (Safari iOS: touch events, sem Pointer Events)
+let _openSwipe=null, _drag=null;
+function _closeSwipe(except){
+  if(_openSwipe && _openSwipe!==except){
+    const c=_openSwipe.querySelector('.tx-item'); if(c) c.style.transform='translateX(0)';
+    _openSwipe=null;
+  }
+}
+function _swStart(x,y,wrap){
+  _closeSwipe(wrap);
+  const card=wrap.querySelector('.tx-item'); if(!card) return;
+  _drag={wrap, card, sx:x, sy:y, dx:0, lock:null, opened:(wrap===_openSwipe)};
+  card.classList.add('dragging');
+}
+function _swMove(x,y,ev){
+  if(!_drag) return;
+  const ax=x-_drag.sx, ay=y-_drag.sy;
+  if(_drag.lock===null){
+    if(Math.abs(ax)<10 && Math.abs(ay)<10) return; // threshold mínimo antes de iniciar
+    _drag.lock = Math.abs(ax)>Math.abs(ay) ? 'h' : 'v';
+  }
+  if(_drag.lock==='v') return; // mais vertical que horizontal → deixa o scroll rolar
+  if(ev && ev.cancelable) ev.preventDefault();
+  _drag.dx=ax;
+  const wrap=_drag.wrap, tx=txs.find(t=>t.id===wrap.dataset.id);
+  const back=wrap.querySelector('.back-pago'), bk=wrap.querySelector('.bk-ico');
+  if(ax>0){
+    if(back) back.classList.toggle('undo', !!(tx&&tx.pago));
+    if(bk) bk.textContent = (tx&&tx.pago) ? '\u21a9\ufe0f' : '\u2705';
+    _drag.card.style.transform='translateX('+Math.min(ax,150)+'px)';
+  } else {
+    _drag.card.style.transform='translateX('+Math.max(ax,-130)+'px)';
+  }
+}
+function _swEnd(){
+  if(!_drag) return;
+  const {wrap, card, dx, lock, opened}=_drag; _drag=null;
+  card.classList.remove('dragging');
+  const id=wrap.dataset.id, type=wrap.dataset.type;
+  if(lock!=='h'){ // foi toque ou scroll vertical
+    if(Math.abs(dx)<10 && !opened) openLaunch(type, id);
+    card.style.transform = opened ? 'translateX(-130px)' : 'translateX(0)';
+    return;
+  }
+  if(dx>80){            // commit p/ direita → toggle pago
+    card.style.transform='translateX(0)';
+    if(_openSwipe===wrap) _openSwipe=null;
+    quickTogglePago(id);
+  } else if(dx<-80){    // abre ações editar/excluir
+    card.style.transform='translateX(-130px)';
+    _openSwipe=wrap;
+  } else {              // não atingiu o threshold → volta
+    card.style.transform = opened ? 'translateX(-130px)' : 'translateX(0)';
+    if(!opened && _openSwipe===wrap) _openSwipe=null;
+  }
+}
+function attachSwipe(){
+  document.querySelectorAll('#txList .swipe-wrap').forEach(function(wrap){
+    const card=wrap.querySelector('.tx-item'); if(!card) return;
+    card.addEventListener('touchstart', function(e){ _swStart(e.touches[0].clientX, e.touches[0].clientY, wrap); }, {passive:true});
+    card.addEventListener('touchmove',  function(e){ _swMove(e.touches[0].clientX, e.touches[0].clientY, e); }, {passive:false});
+    card.addEventListener('touchend',   _swEnd);
+    card.addEventListener('mousedown',  function(e){ _swStart(e.clientX, e.clientY, wrap); });
+    const eb=wrap.querySelector('.sw-edit'), db=wrap.querySelector('.sw-del');
+    if(eb) eb.addEventListener('click', function(ev){ ev.stopPropagation(); card.style.transform='translateX(0)'; _openSwipe=null; openLaunch(wrap.dataset.type, wrap.dataset.id); });
+    if(db) db.addEventListener('click', function(ev){ ev.stopPropagation(); card.style.transform='translateX(0)'; _openSwipe=null; editingTxId=wrap.dataset.id; deleteCurrentTx(); });
+  });
+  if(!window._swMouseInit){
+    window._swMouseInit=true;
+    document.addEventListener('mousemove', function(e){ if(_drag) _swMove(e.clientX, e.clientY, e); });
+    document.addEventListener('mouseup',  function(){ if(_drag) _swEnd(); });
+    document.addEventListener('click', function(e){ if(!e.target.closest('.swipe-wrap')) _closeSwipe(null); });
+  }
+}
+/*__TEST_HELPERS_END__*/
 function renderCharts(){
   const t=getMonthTxs();
   const exp=t.filter(x=>x.type==='despesa');
@@ -2129,7 +2341,7 @@ function openLaunch(type,txId){
   document.getElementById('launchScreen').classList.add('open');
   // Open calculator preserving pre-populated value
   calcHasResult = false;
-  setTimeout(()=>openCalc(),300);
+  if(!txId) setTimeout(()=>openCalc(),300); // só abre a calculadora em lançamento novo (edição não)
 }
 // ═══════════════════════════════════════
 //  U3: CALCULADORA
@@ -2461,7 +2673,17 @@ async function submitLaunch(){
         && (fixo === !!tx.fixo)
         && (!repeat || (repeatN === tx.repeatN && lsRepeatUnit === tx.repeatUnit));
 
-      if(!wasSeriesLocal && targetN===1){
+      // v27/B46/B47: numa série, se SÓ Pago e/ou A confirmar mudaram → não roda replace/preview
+      const onlyTogglesChanged = _onlyTogglesChanged(tx, {
+        amount, desc, catId:lsSelCatId, subId:lsSelSubId, user:lsUser, obs,
+        date:baseDate, fixo, repeat, repeatN, repeatUnit:lsRepeatUnit,
+        pago, aConfirmar, wasSeries:wasSeriesLocal
+      });
+
+      if(onlyTogglesChanged){
+        const done = await applySeriesToggleEdit(tx, pago, aConfirmar);
+        if(!done){ return; } // escopo cancelado → mantém a tela aberta
+      } else if(!wasSeriesLocal && targetN===1){
         // FAST PATH: lançamento simples que continua simples → patch direto
         const patch={
           type:lsType,amount,description:descFinal,obs,
@@ -5032,3 +5254,5 @@ init();
     </div>
   </div>
 </div>
+
+
