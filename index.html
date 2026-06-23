@@ -565,6 +565,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .rev-mc-btn.no{background:var(--rdim);border:1px solid var(--rborder);color:var(--red)}
 .rev-mc-btn.launch{background:var(--amber);color:#0d0f14}
 .rev-mc-btn:active{transform:scale(.97)}
+.rev-mc-btn.yes.hi{background:var(--green);color:#0d0f14;border-color:var(--green)}
+.rev-mc-ai{font-size:11.5px;color:var(--text);margin-top:6px;line-height:1.4}
+.rev-mc-ai .arr{color:var(--blue)}
+.rev-mc-why{color:var(--muted);font-size:11px}
+.rev-mc-pct{font-weight:800;color:var(--muted)}
+.rev-mc-pct.hi{color:var(--green)}
+.rev-reload-banner{background:var(--surf);border:1px solid var(--blue);border-radius:var(--rs);padding:10px 12px;margin-bottom:10px;font-size:12px;color:var(--blue);font-weight:600;cursor:pointer;text-align:center}
+.rev-reload-banner:active{transform:scale(.99)}
 .rev-empty{text-align:center;padding:30px 20px;color:var(--muted);font-size:13px;line-height:1.6}
 .rev-summary{display:flex;gap:8px;margin-bottom:14px}
 .rev-sum-box{flex:1;background:var(--surf2);border:1px solid var(--border);border-radius:var(--rs);padding:10px;text-align:center}
@@ -949,8 +957,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
       <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Mês de referência</div>
       <div class="rev-period-row">
-        <select class="rev-period-sel" id="revMonth"></select>
-        <select class="rev-period-sel" id="revYear"></select>
+        <select class="rev-period-sel" id="revMonth" onchange="revOnPeriodChange()"></select>
+        <select class="rev-period-sel" id="revYear" onchange="revOnPeriodChange()"></select>
       </div>
 
       <div class="imp-drop" id="revDrop">
@@ -967,6 +975,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <div class="rev-progress-step" id="revStep4"><span class="rps-ico">○</span> Concluído</div>
       </div>
 
+      <div id="revReloadBanner" class="rev-reload-banner" style="display:none" onclick="revReprocessCached()">🔄 Novos dados sincronizados — toque para reprocessar a fatura</div>
       <div id="revSummary"></div>
       <div class="rev-filter-row" id="revFilterRow" style="display:none">
         <button class="rev-filter-pill active" data-rf="all" onclick="setRevFilter('all')">Todos</button>
@@ -1736,6 +1745,13 @@ function startRealtime(){
         if(!launchOpen) render();
         setSyncStatus('ok','Sincronizado ✓');
         if(msg.event==='INSERT')showToast('💸 Novo lançamento!','ok');
+        // B44 — se a revisão está aberta com resultado, avisa (não recalcula sozinho)
+        try {
+          const impOpen = document.getElementById('importScreen')?.classList.contains('open');
+          const revVisible = document.getElementById('impBodyReview')?.style.display !== 'none';
+          const revHasResult = (revGroups.matched.length+revGroups.ambiguous.length+revGroups.missing.length) > 0;
+          if(impOpen && revVisible && revHasResult){ const rb=document.getElementById('revReloadBanner'); if(rb) rb.style.display='block'; }
+        } catch(_e){}
       }
     };
     ws.onerror=()=>{setSyncStatus('err','Sem conexão em tempo real');};
@@ -3505,6 +3521,7 @@ let revSource = 'csv';      // 'csv' | 'prints'
 let revFilter = 'all';      // all | matched | ambiguous | missing
 let revGroups = { matched: [], ambiguous: [], missing: [] };
 let revCollapsed = { matched: true, ambiguous: false, missing: false };
+let _revLastExternal = null; // B44 — cache do ultimo arquivo parseado p/ reprocesso
 
 function switchImpTab(tab){
   const isReview = tab === 'review';
@@ -3600,7 +3617,12 @@ async function handleRevFile(e){
     if(revSource === 'csv'){
       const text = await readFileSmart(files[0]);
       external = parseC6CSV(text);
+      // B45 — datas do arquivo divergem do mês selecionado?
+      if(external.length && !revConfirmMonth(external)){ revShowProgress(false); resetRevFileInput(); return; }
     } else {
+      // B42 — HEIC (iOS) costuma quebrar a extração
+      const bad = files.find(f=>!f.type || /heic|heif/i.test(f.type));
+      if(bad) showToast('Para prints, prefira JPEG ou PNG (HEIC pode falhar).','err');
       external = await extractFromPrints(files);
     }
     revSetStep(1,'done');
@@ -3618,22 +3640,29 @@ async function handleRevFile(e){
     const result = checkInvoiceMatch(external);
     revSetStep(2,'done');
 
-    // Passo 4 — IA só para ambíguos
-    if(result.ambiguous.length){
+    // Passo 4 — IA para ambíguos + casos A/B (uma chamada batch)
+    if(result.ambiguous.length || (result.aiCases && result.aiCases.length)){
       revSetStep(3,'active');
       await tick();
       try {
         await resolveAmbiguousWithAI(result);
       } catch(err){
         console.warn('IA ambíguos falhou:', err);
-        // fallback: mantém como ambíguo p/ decisão manual
+        // fallback: casos A/B sem resposta da IA viram não lançados
+        if(result.aiCases && result.aiCases.length){
+          result.aiCases.forEach(a=>result.missing.push({ ext:a.ext }));
+          result.aiCases = [];
+        }
       }
       revSetStep(3,'done');
     } else {
       revSetStep(3,'done');
     }
+    revReconcileOrphans(result); // B40
 
     revGroups = result;
+    _revLastExternal = external; // B44 — cache p/ reprocesso
+    const _rb = document.getElementById('revReloadBanner'); if(_rb) _rb.style.display='none';
     revSetStep(4,'done');
     await tick(400);
     revShowProgress(false);
@@ -3648,6 +3677,67 @@ async function handleRevFile(e){
 }
 
 const tick = (ms=120)=> new Promise(r=>setTimeout(r,ms));
+
+// ── B36 — trocar mês/ano limpa o resultado e pede novo upload ──
+function revOnPeriodChange(){
+  revGroups = { matched: [], ambiguous: [], missing: [] };
+  _revLastExternal = null;
+  const r=document.getElementById('revResults'); if(r) r.innerHTML='';
+  const s=document.getElementById('revSummary'); if(s) s.innerHTML='';
+  const fr=document.getElementById('revFilterRow'); if(fr) fr.style.display='none';
+  const b=document.getElementById('revReloadBanner'); if(b) b.style.display='none';
+  resetRevFileInput();
+}
+
+// ── B45 — confirma se as datas do CSV batem com o mês selecionado ──
+function revConfirmMonth(external){
+  const selM = parseInt(document.getElementById('revMonth').value);
+  const selY = parseInt(document.getElementById('revYear').value);
+  const counts = {};
+  external.forEach(e=>{
+    const p = normalizeDate(e.date).split('-');
+    if(p.length===3){ const k=p[0]+'-'+p[1]; counts[k]=(counts[k]||0)+1; }
+  });
+  const keys = Object.keys(counts);
+  if(!keys.length) return true;
+  let topK=keys[0]; keys.forEach(k=>{ if(counts[k]>counts[topK]) topK=k; });
+  const tp = topK.split('-'); const ty=parseInt(tp[0]); const tm=parseInt(tp[1]);
+  if(ty===selY && (tm-1)===selM) return true;
+  const meses=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const detected = meses[tm-1]+'/'+ty;
+  const chosen = meses[selM]+'/'+selY;
+  return confirm('As datas do arquivo parecem ser de '+detected+', mas você selecionou '+chosen+'.\n\nContinuar mesmo assim?');
+}
+
+// ── B40 — ambíguos órfãos (todos os candidatos consumidos por outros) viram não lançados ──
+function revReconcileOrphans(result){
+  for(let k=result.ambiguous.length-1; k>=0; k--){
+    const a = result.ambiguous[k];
+    if(!a.chosen && a.candidates.every(c=>c._consumed)){
+      result.missing.push({ ext: a.ext });
+      result.ambiguous.splice(k,1);
+    }
+  }
+}
+
+// ── B44 — reprocessa a fatura em cache (1 toque, sem reenviar arquivo) ──
+async function revReprocessCached(){
+  const b=document.getElementById('revReloadBanner'); if(b) b.style.display='none';
+  if(!_revLastExternal || !_revLastExternal.length){ showToast('Reenvie o arquivo para reprocessar.','err'); return; }
+  revShowProgress(true); revSetStep(1,'done'); revSetStep(2,'active'); await tick();
+  const result = checkInvoiceMatch(_revLastExternal);
+  revSetStep(2,'done');
+  if(result.ambiguous.length || (result.aiCases && result.aiCases.length)){
+    revSetStep(3,'active'); await tick();
+    try { await resolveAmbiguousWithAI(result); }
+    catch(err){ console.warn('IA reprocess falhou:', err); if(result.aiCases){ result.aiCases.forEach(a=>result.missing.push({ ext:a.ext })); result.aiCases=[]; } }
+    revSetStep(3,'done');
+  } else { revSetStep(3,'done'); }
+  revReconcileOrphans(result);
+  revGroups = result;
+  revSetStep(4,'done'); await tick(300); revShowProgress(false);
+  renderRevResults();
+}
 
 // ── Leitura de arquivo com fallback de encoding (UTF-8 → ISO-8859-1) ──
 function readFileSmart(file){
@@ -3702,9 +3792,17 @@ function parseC6CSV(text){
 
     // Parcela "X/Y" ou "X de Y" em qualquer coluna
     let parcCur=null, parcTot=null;
-    const parcStr = cols.parcCur>=0 ? (f[cols.parcCur]||'') : (descRaw+' '+amtRaw);
-    const pm = parcStr.match(/(\d{1,2})\s*(?:\/|de)\s*(\d{1,2})/i);
-    if(pm){ parcCur=parseInt(pm[1]); parcTot=parseInt(pm[2]); }
+    if(cols.parcCur>=0){
+      const pm = String(f[cols.parcCur]||'').match(/(\d{1,2})\s*(?:\/|de)\s*(\d{1,2})/i);
+      if(pm){ parcCur=parseInt(pm[1]); parcTot=parseInt(pm[2]); }
+    } else {
+      // B39: fallback restrito p/ evitar falso-positivo (ex.: "NETFLIX 11/2025")
+      const pm = (descRaw+' '+amtRaw).match(/\b(\d{1,2})\/(\d{1,2})\b/);
+      if(pm){
+        const cur=parseInt(pm[1]), tot=parseInt(pm[2]);
+        if(tot>=1 && tot<=24 && cur>=1 && cur<=tot){ parcCur=cur; parcTot=tot; }
+      }
+    }
 
     out.push({
       rawName: descRaw || 'Sem descrição',
@@ -3766,7 +3864,7 @@ function parseBrAmount(s){
 async function extractFromPrints(files){
   const images = await Promise.all(files.map(f=>toBase64(f)));
   const content = [
-    ...images.map(img=>({ type:'image', source:{ type:'base64', media_type:img.type, data:img.data } })),
+    ...images.map(img=>({ type:'image', source:{ type:'base64', media_type:(img.type && img.type.indexOf('image/')===0 && !/heic|heif/i.test(img.type) ? img.type : 'image/jpeg'), data:img.data } })),
     { type:'text', text:
 `Extraia TODAS as transações visíveis nestes prints de fatura/extrato bancário.
 Retorne APENAS um JSON array, sem texto e sem markdown, no formato:
@@ -3828,8 +3926,47 @@ function checkInvoiceMatch(external){
       result.matched.push({ ext, tx: cands[0], approx:true });
     } else if(cands.length >= 2){
       ext._matched = true; // resolvido (ambiguamente) — não vira "não lançado"
-      result.ambiguous.push({ ext, candidates: cands, chosen:null, confidence:null });
+      result.ambiguous.push({ ext, candidates: cands, chosen:null, confidence:null, aiType:'tiebreak', explanation:null });
     }
+  });
+
+  // ── Melhoria 2 — casos para a IA (NÃO consome nada aqui; quem decide é a IA) ──
+  result.aiCases = [];
+  const nearValue = (a,b)=>{ const d=Math.abs(a-b); return d>0.011 && d<=0.05; };
+
+  // CASO A — valor aproximado (±0,01 a ±0,05) com data próxima (±1 dia)
+  external.forEach(ext=>{
+    if(ext._matched) return;
+    const cands = candidates.filter(c=>!c._consumed && nearValue(c.amount, ext.amount) && dayDiff(c.date, ext.date) <= 1);
+    if(cands.length){
+      ext._matched = true; // tirado de "não lançado"; a IA decide
+      result.aiCases.push({ ext, candidates: cands.slice(0,4), aiType:'approx_value', chosen:null, confidence:null, explanation:null });
+    }
+  });
+
+  // CASO B — quantidade desbalanceada (fatura tem N; FinIop casou M<N do mesmo estabelecimento/valor)
+  const _grp = {};
+  external.forEach(ext=>{
+    if(ext._matched) return;
+    const k = normalizeKey(ext.rawName)+'|'+Math.round(ext.amount*100);
+    (_grp[k] = _grp[k] || []).push(ext);
+  });
+  Object.keys(_grp).forEach(k=>{
+    const exts = _grp[k];
+    const sample = exts[0];
+    const key = normalizeKey(sample.rawName);
+    if(!key) return;
+    const mFiniop = result.matched.filter(mm=>(normalizeKey(mm.ext.rawName)+'|'+Math.round(mm.ext.amount*100))===k).length;
+    const nFatura = exts.length + mFiniop;
+    // só é "desbalanceamento" se o grupo se repete na sobra OU já houve match exato do mesmo grupo
+    if(exts.length < 2 && mFiniop < 1) return;
+    // candidato concreto: mesmo estabelecimento, valor próximo (±0,10), ainda livre
+    const cands = candidates.filter(c=>!c._consumed && normalizeKey(c.desc).includes(key) && Math.abs(c.amount - sample.amount) <= 0.10);
+    if(!cands.length) return; // nada concreto p/ apontar -> não lançado (⚠️)
+    exts.forEach(ext=>{
+      ext._matched = true;
+      result.aiCases.push({ ext, candidates: cands.slice(0,4), aiType:'qty_imbalance', nFatura, mFiniop, chosen:null, confidence:null, explanation:null });
+    });
   });
 
   // PASSO restante — não lançados
@@ -3844,48 +3981,95 @@ function checkInvoiceMatch(external){
 
 // ── Passo 4: IA desempata ambíguos (uma chamada em batch) ──
 async function resolveAmbiguousWithAI(result){
-  if(!result.ambiguous.length) return;
-  const payloadTx = result.ambiguous.map((a,i)=>({
-    transacao_id: 'A'+i,
-    descricao: a.ext.rawName,
-    valor: a.ext.amount,
-    data: a.ext.date,
-    candidatos: a.candidates.map(c=>({ match_id: c.id, descricao: c.desc, data: normalizeDate(c.date) }))
-  }));
+  result.aiCases = result.aiCases || [];
+  const items = [];
+  // desempate ±1 dia (2+ candidatos exatos)
+  result.ambiguous.forEach((a,i)=>{
+    items.push({
+      externo_id:'T'+i, tipo:'desempate',
+      descricao:a.ext.rawName, valor:a.ext.amount, data:a.ext.date,
+      candidatos:a.candidates.map(c=>({ finiop_id:c.id, descricao:c.desc, valor:c.amount, data:normalizeDate(c.date) }))
+    });
+  });
+  // casos novos (valor aproximado / quantidade desbalanceada)
+  result.aiCases.forEach((a,i)=>{
+    const it = {
+      externo_id:'X'+i,
+      tipo: a.aiType==='approx_value' ? 'valor_aproximado' : 'quantidade_desbalanceada',
+      descricao:a.ext.rawName, valor:a.ext.amount, data:a.ext.date,
+      candidatos:a.candidates.map(c=>({ finiop_id:c.id, descricao:c.desc, valor:c.amount, data:normalizeDate(c.date) }))
+    };
+    if(a.aiType==='qty_imbalance'){ it.ocorrencias_fatura=a.nFatura; it.ocorrencias_finiop=a.mFiniop; }
+    items.push(it);
+  });
+  if(!items.length) return;
+
   const prompt =
-`Você ajuda a cruzar transações de fatura de cartão com lançamentos já feitos num app de finanças.
-Cada transação externa abaixo tem 2+ candidatos de mesmo valor e data próxima. Escolha o candidato mais provável de ser o MESMO lançamento (pela descrição e proximidade de data).
-Responda APENAS um JSON array, sem texto e sem markdown:
-[{"transacao_id":"A0","match_id":"<id do candidato escolhido>","confianca":0-100}]
-Se não houver escolha clara, use o candidato de data mais próxima com confianca baixa.
+`Você cruza transações de uma fatura de cartão com lançamentos já feitos num app de finanças pessoais (uma família).
+Para cada item externo, diga se ele é o MESMO de um dos candidatos do app. Considere descrição, valor, data e o TIPO de estabelecimento que você infere (streaming/assinatura, alimentação/cantina/padaria, transporte, farmácia, mercado, etc.).
+Bom senso:
+- Streaming/assinatura: dois gastos quase iguais no mesmo dia são quase sempre o MESMO (arredondamento de parcela) -> confiança alta.
+- Alimentação/cantina/padaria: o mesmo valor pode se repetir legitimamente em dias seguidos -> seja cauteloso.
+- tipo "valor_aproximado": diferença de centavos. tipo "quantidade_desbalanceada": a fatura tem mais ocorrências do que o app.
+Responda APENAS um JSON, sem texto e sem markdown:
+{"matches":[{"externo_id":"...","finiop_id":"<id do candidato>","confianca":0-100,"explicacao":"frase curta"}],"sem_match":["externo_id"]}
+A explicação deve ser curta (até ~6 palavras), ex.: "Arredondamento de parcela de streaming". Coloque em "sem_match" o que não casa com nenhum candidato.
 
 DADOS:
-${JSON.stringify(payloadTx)}`;
-  const data = await callAnthropicAPI({ model:'claude-sonnet-4-20250514', max_tokens:1500, messages:[{role:'user',content:prompt}] });
-  const raw = data.content?.find(b=>b.type==='text')?.text || '[]';
-  const decisions = safeParseImportJSON(raw);
-  decisions.forEach(dec=>{
-    const idx = parseInt((dec.transacao_id||'').replace('A',''));
-    const a = result.ambiguous[idx];
-    if(!a) return;
-    // B33: so candidato livre; se o escolhido pela IA ja foi consumido, usa o proximo livre
-    let chosen = a.candidates.find(c=>c.id===dec.match_id && !c._consumed)
-              || a.candidates.find(c=>!c._consumed);
-    if(chosen){
+${JSON.stringify(items)}`;
+
+  const data = await callAnthropicAPI({ model:'claude-sonnet-4-20250514', max_tokens:2000, messages:[{role:'user',content:prompt}] });
+  const raw = data.content?.find(b=>b.type==='text')?.text || '{}';
+  let resp;
+  try { resp = JSON.parse(raw.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim()); }
+  catch(e){ const mm = raw.match(/\{[\s\S]*\}/); resp = mm ? JSON.parse(mm[0]) : { matches:[], sem_match:[] }; }
+  const aiMatches = Array.isArray(resp.matches) ? resp.matches : [];
+  const byId = {};
+  aiMatches.forEach(m=>{ if(m && m.externo_id) byId[m.externo_id]=m; });
+
+  // aplica nos desempates (T*)
+  result.ambiguous.forEach((a,i)=>{
+    const dec = byId['T'+i];
+    if(!dec) return; // sem resposta: mantém ambíguo p/ decisão manual
+    const wantConf = typeof dec.confianca==='number' ? dec.confianca : null;
+    const chosen = a.candidates.find(c=>c.id===dec.finiop_id && !c._consumed) || a.candidates.find(c=>!c._consumed);
+    if(chosen && (wantConf==null || wantConf>=60)){
       chosen._consumed = true;
       a.chosen = chosen;
-      a.confidence = typeof dec.confianca==='number' ? dec.confianca : null;
+      a.confidence = wantConf;
+      a.explanation = dec.explicacao || null;
     } else {
-      a._returnToMissing = true; // nenhum candidato livre -> nao lancado
+      a._returnToMissing = true;
     }
   });
-  // B33: ambiguos sem candidato livre voltam para "nao lancados"
+
+  // aplica nos casos novos (X*) -> viram 🔍 (ambiguous) ou ⚠️ (missing)
+  const promoted = [];
+  result.aiCases.forEach((a,i)=>{
+    const dec = byId['X'+i];
+    const conf = dec && typeof dec.confianca==='number' ? dec.confianca : null;
+    if(dec && dec.finiop_id && conf!=null && conf>=60){
+      const chosen = a.candidates.find(c=>c.id===dec.finiop_id && !c._consumed) || a.candidates.find(c=>!c._consumed);
+      if(chosen){
+        chosen._consumed = true; // reserva tentativa (não sugere o mesmo 2x)
+        promoted.push({ ext:a.ext, candidates:a.candidates, chosen, confidence:conf, explanation:dec.explicacao||null, aiType:a.aiType });
+      } else {
+        result.missing.push({ ext:a.ext });
+      }
+    } else {
+      result.missing.push({ ext:a.ext }); // <60% ou sem_match -> não lançado
+    }
+  });
+  promoted.forEach(p=>result.ambiguous.push(p));
+
+  // desempates sem candidato livre voltam p/ não lançados
   for(let k=result.ambiguous.length-1; k>=0; k--){
     if(result.ambiguous[k]._returnToMissing){
       result.missing.push({ ext: result.ambiguous[k].ext });
       result.ambiguous.splice(k,1);
     }
   }
+  result.aiCases = [];
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -3973,20 +4157,30 @@ function renderMatchedCard(mc){
 }
 
 function renderAmbiguousCard(a, i){
-  const chosenTxt = a.chosen
-    ? `<div class="rev-mc-conf">🤖 sugestão: <strong style="color:var(--text)">${esc(trunc(a.chosen.desc,26))}</strong> (${a.confidence!=null?a.confidence+'% confiança':'sem certeza'})</div>`
-    : `<div class="rev-mc-conf">🤖 não foi possível desempatar — confira manualmente</div>`;
+  const conf = (typeof a.confidence==='number') ? a.confidence : null;
+  const hi = conf!=null && conf>=90; // ≥90% -> ✓ verde destacado
+  const ch = a.chosen;
+  let mid, linkRight;
+  if(ch){
+    const pct = conf!=null ? conf+'%' : 'sem certeza';
+    const why = a.explanation ? '<br><span class="rev-mc-why">'+esc(a.explanation)+'</span>' : '';
+    mid = `<div class="rev-mc-ai">🤖 ${esc(trunc(ch.desc,24))} · ${fmt(ch.amount)} <span class="rev-mc-pct${hi?' hi':''}">${pct}</span>${why}</div>`;
+    linkRight = `<span class="arr">→</span> lançado ${fmtBrDate(ch.date)}`;
+  } else {
+    mid = `<div class="rev-mc-conf">🤖 ${a.candidates.length} candidatos — confira manualmente</div>`;
+    linkRight = `${a.candidates.length} candidatos · ${fmtBrDate(a.ext.date)}`;
+  }
   return `<div class="rev-match-card amb">
     <div class="rev-mc-row">
       <div>
         <div class="rev-mc-desc">${esc(a.ext.rawName)}</div>
-        <div class="rev-mc-link">${a.candidates.length} candidatos · ${fmtBrDate(a.ext.date)}</div>
-        ${chosenTxt}
+        <div class="rev-mc-link">fatura ${fmtBrDate(a.ext.date)} ${linkRight}</div>
+        ${mid}
       </div>
       <div class="rev-mc-amt">${fmt(a.ext.amount)}</div>
     </div>
     <div class="rev-mc-actions">
-      <button class="rev-mc-btn yes" onclick="revConfirmAmbiguous(${i})">✓ É o mesmo</button>
+      <button class="rev-mc-btn yes${hi?' hi':''}" onclick="revConfirmAmbiguous(${i})">✓ É o mesmo</button>
       <button class="rev-mc-btn no" onclick="revRejectAmbiguous(${i})">✗ Não é</button>
     </div>
   </div>`;
@@ -4034,8 +4228,9 @@ function revConfirmAmbiguous(i){
 function revRejectAmbiguous(i){
   const a = revGroups.ambiguous[i];
   if(!a) return;
-  // candidatos voltam a ficar livres
-  a.candidates.forEach(c=>{ c._consumed=false; });
+  // libera o que estava reservado para este item
+  if(a.chosen) a.chosen._consumed=false;
+  else a.candidates.forEach(c=>{ c._consumed=false; });
   revGroups.missing.push({ ext: a.ext });
   revGroups.ambiguous.splice(i,1);
   renderRevResults();
@@ -4059,6 +4254,23 @@ function revLaunchMissing(i){
     document.getElementById('lsAmt').value = amt;
     document.getElementById('lsAmtDisplay').textContent = amt.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
     calcExpr = String(amt).replace('.',',');
+    // B41 — observação com a parcela (lançamento único por linha da fatura)
+    if(m.ext.parcCur && m.ext.parcTot){
+      const obsEl = document.getElementById('lsObs');
+      const pTxt = 'Parcela '+m.ext.parcCur+'/'+m.ext.parcTot;
+      if(obsEl) obsEl.value = obsEl.value ? (obsEl.value+' · '+pTxt) : pTxt;
+    }
+    // Melhoria 1 — sugestão automática de categoria (reaproveita matchPattern do fluxo normal)
+    const sug = matchPattern(m.ext.rawName);
+    if(sug && sug.catId){
+      const sCat = findCat(lsType, sug.catId);
+      if(sCat && sCat.name!=='Sem categoria'){
+        lsSelCatId = sug.catId;
+        lsSelSubId = sug.subId || null;
+        updateCatPill();
+        hideCatSuggest();
+      }
+    }
     // data
     lsQuickDate='outros'; lsCustomDate = normalizeDate(m.ext.date);
     const dpC = document.getElementById('dpCustom');
@@ -4067,6 +4279,8 @@ function revLaunchMissing(i){
     document.getElementById('dpHoje').className='dpill';
     document.getElementById('dpOntem').className='dpill';
     document.getElementById('dpOutros').className='dpill '+(isD?'active-red':'active-grn');
+    // B43 — sincroniza display da calculadora com o valor pré-preenchido (evita corrida com openCalc)
+    updateCalcDisplay();
   }, 360);
 }
 
@@ -5275,5 +5489,3 @@ init();
     </div>
   </div>
 </div>
-
-
