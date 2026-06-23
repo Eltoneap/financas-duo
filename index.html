@@ -3415,7 +3415,7 @@ REGRAS CRÍTICAS:
     ];
 
     const apiPayload = {
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 4000,
       messages: [{ role: 'user', content }]
     };
@@ -3875,7 +3875,7 @@ Retorne APENAS um JSON array, sem texto e sem markdown, no formato:
 {"rawName":"nome do estabelecimento como aparece","amount":valor numérico sem R$,"date":"YYYY-MM-DD","type":"despesa"}
 Regras: ano atual 2026; use a data exata do print; ignore itens sem valor claro; não invente nada.` }
   ];
-  const data = await callAnthropicAPI({ model:'claude-sonnet-4-20250514', max_tokens:4000, messages:[{role:'user',content}] });
+  const data = await callAnthropicAPI({ model:'claude-sonnet-4-6', max_tokens:4000, messages:[{role:'user',content}] });
   const raw = data.content?.find(b=>b.type==='text')?.text || '[]';
   let parsed = safeParseImportJSON(raw);
   return parsed
@@ -4022,7 +4022,7 @@ A explicação deve ser curta (até ~6 palavras), ex.: "Arredondamento de parcel
 DADOS:
 ${JSON.stringify(items)}`;
 
-  const data = await callAnthropicAPI({ model:'claude-sonnet-4-20250514', max_tokens:2000, messages:[{role:'user',content:prompt}] });
+  const data = await callAnthropicAPI({ model:'claude-sonnet-4-6', max_tokens:2000, messages:[{role:'user',content:prompt}] });
   const raw = data.content?.find(b=>b.type==='text')?.text || '{}';
   let resp;
   try { resp = JSON.parse(raw.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim()); }
@@ -4776,7 +4776,7 @@ Alertas sobre gastos que merecem atenção ou cresceram muito.
 Seja direto, use os nomes reais das categorias e estabelecimentos, e forneça insights genuinamente úteis. Não seja genérico.`;
 
     const apiPayload2 = {
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 1500,
       messages: [{ role: 'user', content: prompt }]
     };
@@ -5055,7 +5055,7 @@ Categorias de despesa:
 ${catsStr||'(sem despesas)'}
 
 Responda em português. Use no máximo 4 seções curtas com ## como título. Seja específico com os números. Máximo 250 palavras. Termine com 2 dicas práticas para o próximo mês.`;
-    const data=await callAnthropicAPI({model:'claude-sonnet-4-20250514',max_tokens:600,messages:[{role:'user',content:prompt}]});
+    const data=await callAnthropicAPI({model:'claude-sonnet-4-6',max_tokens:600,messages:[{role:'user',content:prompt}]});
     monthReportText=data.content?.find(b=>b.type==='text')?.text||'Não foi possível gerar a análise.';
     localStorage.setItem(key,'shown'); // marca só após sucesso
     const html=monthReportText
